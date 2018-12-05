@@ -1,6 +1,2 @@
 .idea/
-testing/*.tex
-testing/*.aux
-testing/*.gz
-testing/*.log
-testing/*.pdf
+testing/output/
