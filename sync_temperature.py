@@ -1,9 +1,17 @@
 import datetime
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 def sync_temperature(dion_data, catman_data):
+    """ Returns a new DataFrame with the temperature data from catman interpolated from the Dion7 times.
+
+    :param TimedData dion_data: Data from Dion7.
+    :param TimedData catman_data: Data from catman.
+    :return pd.DataFrame: Copy of the data from dion_data with the interpolated temperature.
+
+    - The added column is 'Temperature[C]'
+    """
     # Get the times in seconds since epoch
     system_time_dion = dion_data.data['System Date']
     system_time_dion = np.array(get_epoch_time(system_time_dion))
@@ -27,7 +35,7 @@ def sync_temperature(dion_data, catman_data):
     #     plt.plot(system_time_catman, catman_data.data['Temperature[C]'], lw=1.5, label='Original')
     #     plt.plot(system_time_dion, synced_data['Temperature[C]'], lw=1.0, label='Interpolated')
     #     plt.xlabel('Time since epoch [s]')
-    #     plt.ylabel('Temperature [C]')
+    #     plt.ylabel('Temperature [$^\circ$C]')
     #     plt.legend()
     #     plt.savefig('../output/temperature_interp_fig.pdf')
     #     plt.close()
