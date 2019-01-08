@@ -9,3 +9,6 @@ rlmtp/tests/output/
 
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
+
+# Large video file (but is required for testing)
+/rlmtp/tests/D5600_B_254_132139_589.MOV

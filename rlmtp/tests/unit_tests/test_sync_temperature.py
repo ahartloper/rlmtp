@@ -11,4 +11,4 @@ class TestSync_temperature(TestCase):
         catman_data = reader.read('../Temp_LP9_1_181211.XLSX')
         synced_data = sync_temperature(dion_data, catman_data)
 
-        self.fail()
+        self.assertTrue('Temperature[C]' in synced_data.columns)

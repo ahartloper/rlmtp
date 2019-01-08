@@ -61,23 +61,29 @@ def dion7_times_to_video_times(video_file, times):
 
     :param str video_file: Path to the video file.
     :param list times: (datetime.datetime) Times of interest from Dion7 recordings in ascending chronological order.
-    :return list: (float) Time in seconds since the start of the video to each Dion7 recording provided.
+    :return list: (float) Time in seconds since the start of the video to each Dion7 recording provided, or False if the
+    times are invalid.
 
     - It is assumed that the video is recorded on the same date (Day, Month, Year) as the provided times.
     - It is assumed that the video only spans a single day.
+    - The times are invalid if they do not fall within the video time.
     """
     # Get the video start time (assumed same date as the provided times)
     vst, vet = get_start_end_time(video_file)
     t1 = times[0]
     video_start = vst.replace(year=t1.year, month=t1.month, day=t1.day)
     video_end = vet.replace(year=t1.year, month=t1.month, day=t1.day)
-    check_times_within_video_time(video_start, video_end, times)
-    # Calculate the elapsed time in seconds
-    video_times = []
-    for t in times:
-        t_delta = t - video_start
-        video_times.append(t_delta.total_seconds())
-    return video_times
+    time_is_ok = check_times_within_video_time(video_start, video_end, times)
+    if time_is_ok:
+        # Calculate the elapsed time in seconds
+        video_times = []
+        for t in times:
+            t_delta = t - video_start
+            video_times.append(t_delta.total_seconds())
+        return video_times
+    else:
+        # Returns False
+        return time_is_ok
 
 
 def output_frames_at_times(video_file, times, out_dir, file_base_name):
