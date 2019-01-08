@@ -64,7 +64,7 @@ def dion7_times_to_video_times(video_file, times):
     :return list: (float) Time in seconds since the start of the video to each Dion7 recording provided.
 
     - It is assumed that the video is recorded on the same date (Day, Month, Year) as the provided times.
-    - It is assumed that the video only spans a signle day.
+    - It is assumed that the video only spans a single day.
     """
     # Get the video start time (assumed same date as the provided times)
     vst, vet = get_start_end_time(video_file)
@@ -78,3 +78,29 @@ def dion7_times_to_video_times(video_file, times):
         t_delta = t - video_start
         video_times.append(t_delta.total_seconds())
     return video_times
+
+
+def output_frames_at_times(video_file, times, out_dir, file_base_name):
+    """ Saves images from the video at specified times.
+
+    :param str video_file: Path to the video file.
+    :param list times: (float) Times in seconds of frames to save.
+    :param str out_dir: Path to output directory.
+    :param str file_base_name: Name of output file, will be appended with the time to id each picture.
+    :return:
+
+    - REQUIRES ffmpeg
+    - out_dir must end with the directory delimiter (e.g., '/' or '\\')
+    - the files are saved as [file_base_name]_[S]_[ms], where S are the seconds and ms are the milliseconds specified
+    - if the files already exist, they will NOT be overwritten
+    """
+    for t in times:
+        out_path = out_dir + file_base_name + '_' + str(t).replace('.', '_') + '.jpg'
+        # Check if the file already exists because ffmpeg will ask if you want to overwrite the file if they do
+        if not os.path.isfile(out_path):
+            # From: https://stackoverflow.com/a/27573049
+            subprocess.run('ffmpeg -nostats -loglevel 0 -ss ' + str(t) + ' -i ' + video_file + ' -vframes 1 -q:v 2 ' +
+                           out_path)
+        else:
+            warnings.warn(out_path + ' already exists, no new file created!')
+    return

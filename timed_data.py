@@ -18,6 +18,17 @@ class TimedData:
         self.data = data
         self.sample_rate_ms = sample_rate_ms
 
+    def get_times_at_increments(self, inc):
+        """ Returns the System Date corresponding to the provided time increments.
+
+        :param list inc: Zero-indexed time increments in self.data
+        :return list: (datetime.datetime) Corresponding entries in System Date.
+        """
+        t = []
+        for ti in inc:
+            t.append(self.data['System Date'][ti])
+        return t
+
 
 class ExcelCatmanReader:
 
@@ -60,7 +71,7 @@ class ExcelDion7Reader:
         data = data.rename(index=str, columns={"sigma [Mpa]": "Eng_Stress[MPa]", "epsilon": "Eng_Strain[]",
                                                "sigma_true": "Sigma_true"})
         # Deduce and replace the times with microseconds
-        system_time = data['System Date']
+        system_time = pd.to_datetime(data['System Date'])
         time_with_microseconds = self.deduce_microseconds(system_time)
         first_time = time_with_microseconds[0].to_pydatetime()  # time of first measurement
         sample_rate = time_with_microseconds[1] - time_with_microseconds[0]
