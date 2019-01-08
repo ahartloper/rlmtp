@@ -1,5 +1,5 @@
 from unittest import TestCase
-from timed_data import ExcelDion7Reader, ExcelCatmanReader
+from readers import ExcelDion7Reader, ExcelCatmanReader
 from sync_temperature import sync_temperature
 
 
