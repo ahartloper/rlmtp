@@ -1,6 +1,6 @@
 from unittest import TestCase
-from readers import ExcelDion7Reader, ExcelCatmanReader
-from sync_temperature import sync_temperature
+from rlmtp.readers import ExcelDion7Reader, ExcelCatmanReader
+from rlmtp.sync_temperature import sync_temperature
 
 
 class TestSync_temperature(TestCase):

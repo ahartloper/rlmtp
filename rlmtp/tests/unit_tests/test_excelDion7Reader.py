@@ -1,5 +1,5 @@
 from unittest import TestCase
-from timed_data import ExcelDion7Reader, ExcelCatmanReader
+from rlmtp.timed_data import ExcelDion7Reader, ExcelCatmanReader
 
 
 class TestExcelDion7Reader(TestCase):

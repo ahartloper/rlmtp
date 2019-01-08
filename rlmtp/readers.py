@@ -1,6 +1,6 @@
 import pandas as pd
 import datetime
-from timed_data import TimedData
+from rlmtp.timed_data import TimedData
 
 
 class Reader:
