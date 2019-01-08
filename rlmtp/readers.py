@@ -105,3 +105,23 @@ class ExcelDion7Reader(Reader):
                 micro_second_diff = count_since_ref * dt
                 system_time_micro[i] = ref_time + datetime.timedelta(microseconds=micro_second_diff)
         return system_time_micro
+
+
+def import_dion7_data(file):
+    """ Returns a properly formatted TimedData object from the specified Excel input file.
+
+    :param str file: Path to file in the specified Dion7 format.
+    :return TimedData: Object containing the data from the input file.
+    """
+    reader = ExcelDion7Reader()
+    return reader.read(file)
+
+
+def import_catman_data(file):
+    """ Returns a properly formatted TimedData object from the specified Excel input file.
+
+    :param str file: Path to file in the specified catman format.
+    :return TimedData: Object containing the data from the input file.
+    """
+    reader = ExcelCatmanReader()
+    return reader.read(file)

@@ -12,3 +12,5 @@ rlmtp/tests/output/
 
 # Large video file (but is required for testing)
 /rlmtp/tests/D5600_B_254_132139_589.MOV
+/examples/.ipynb_checkpoints/
+/examples/ex_1_pic_916_394.jpg
