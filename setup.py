@@ -9,6 +9,6 @@ setup(name='rlmtp',
       license='MIT',
       packages=['rlmtp'],
       install_requires=[
-          'numpy', 'pandas'
+          'numpy', 'pandas', 'matplotlib'
       ],
       zip_safe=False)
