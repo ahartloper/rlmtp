@@ -37,8 +37,14 @@ class ExcelCatmanReader(Reader):
         data.drop(range(47), inplace=True)
         data.reset_index(drop=True, inplace=True)
         # Rename the columns
-        col_new_name = ['Time[s]', 'Force[kN]', 'Extenso[mm]', 'Temperature[C]']
-        data = data.rename(index=str, columns=dict(zip(data.columns, col_new_name)))
+        col_new_name = ['Time[s]']  # assume that the time is the first index
+        rename_dict = dict(zip(data.columns, col_new_name))
+        # Find the temperature index
+        for col in data.columns:
+            if len(col) >= 12:
+                if col[:11] == 'Temperature':
+                    rename_dict[col] = 'Temperature[C]'
+        data = data.rename(index=str, columns=rename_dict)
         time = data['Time[s]']
         sample_rate = int((time[1] - time[0]) * 1000000)
         sample_rate = datetime.timedelta(microseconds=sample_rate)

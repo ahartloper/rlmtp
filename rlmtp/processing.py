@@ -2,7 +2,7 @@ import os
 import errno
 from rlmtp.readers import import_dion7_data, import_catman_data
 from rlmtp.sync_temperature import sync_temperature
-from rlmtp.plotting import stress_strain_plotter, temp_strain_plotter
+from rlmtp.plotting import stress_strain_plotter, temp_time_plotter
 
 
 def dir_maker(directory):
@@ -36,7 +36,7 @@ def load_data_files(input_dir):
         dion7_data = import_dion7_data(dion7_file)
         valid_dion7_data = True
         print('\t Dion7 data exists.')
-    except FileNotFoundError:
+    except (FileNotFoundError, IndexError):
         valid_dion7_data = False
         print('\t Dion7 data does NOT exist.')
     # catman data file
@@ -46,7 +46,7 @@ def load_data_files(input_dir):
         catman_data = import_catman_data(catman_file)
         valid_catman_data = True
         print('\t catman data exists.')
-    except FileNotFoundError:
+    except (FileNotFoundError, IndexError):
         valid_catman_data = False
         print('\t catman data does NOT exist.')
     # filtering file
@@ -57,7 +57,7 @@ def load_data_files(input_dir):
         filter_data = None
         valid_filter_data = True
         print('\t Filtering information exists.')
-    except Exception as e:
+    except (FileNotFoundError, IndexError):
         valid_filter_data = False
         print('\t Filtering information does NOT exist.')
 
@@ -79,6 +79,12 @@ def load_data_files(input_dir):
 
 
 def generate_output(data, output_dir):
+    """ Creates the output files in the specified directory.
+
+    :param pd.DataFrame data: Contains all the data to save to file.
+    :param str output_dir: Directory where files will be saved.
+    :return:
+    """
     # Write the .csv file
     file_name = 'processed_data.csv'
     out_path = os.path.join(output_dir, file_name)
@@ -87,7 +93,7 @@ def generate_output(data, output_dir):
     # Write the figures
     stress_strain_plotter(data, output_dir)
     if 'Temperature[C]' in data.columns:
-        temp_strain_plotter(data, output_dir)
+        temp_time_plotter(data, output_dir)
     return
 
 
@@ -104,6 +110,7 @@ def process_specimen_data(input_path, output_root):
     - The output directory gets the same name as the input directory.
     - A new directory is created in the output_root if it does not exist already, all the processed files are placed
     in this directory.
+    - If the temperature data exists, it is synced with the Dion7 data.
     """
     # Check to see if the correct files exist, and load the data
     all_data = load_data_files(input_path)
@@ -112,6 +119,7 @@ def process_specimen_data(input_path, output_root):
         raise Exception('Dion7 data does not exist (in the correct format), exiting.')
     catman_data = all_data['catman']
     if catman_data is not None:
+        print('Syncing temperature data with Dion7 data...')
         final_data = sync_temperature(dion7_data, catman_data)
     else:
         final_data = dion7_data
@@ -121,5 +129,7 @@ def process_specimen_data(input_path, output_root):
     specimen_dir_name = os.path.normpath(input_path).split(os.path.sep)[-1]
     output_dir = os.path.join(output_root, specimen_dir_name)
     dir_maker(output_dir)
+    print('Generating the output...')
     generate_output(final_data, output_dir)
+    print('Finished processing!')
     return

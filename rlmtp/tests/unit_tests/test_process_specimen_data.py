@@ -13,12 +13,12 @@ class TestProcess_specimen_data(TestCase):
             os.remove('../output/test_specimen/processed_data.csv')
         if os.path.isfile('../output/test_specimen/stress_strain_plot.pdf'):
             os.remove('../output/test_specimen/stress_strain_plot.pdf')
-        if os.path.isfile('../output/test_specimen/temperature_strain_plot.pdf'):
-            os.remove('../output/test_specimen/temperature_strain_plot.pdf')
+        if os.path.isfile('../output/test_specimen/temperature_time_plot.pdf'):
+            os.remove('../output/test_specimen/temperature_time_plot.pdf')
 
         process_specimen_data(input_dir, output_dir)
 
         self.assertTrue(os.path.isfile('../output/test_specimen/processed_data.csv'))
         self.assertTrue(os.path.isfile('../output/test_specimen/stress_strain_plot.pdf'))
-        self.assertTrue(os.path.isfile('../output/test_specimen/temperature_strain_plot.pdf'))
+        self.assertTrue(os.path.isfile('../output/test_specimen/temperature_time_plot.pdf'))
         return
