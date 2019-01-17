@@ -102,7 +102,7 @@ def process_specimen_data(input_path, output_root):
 
     :param str input_path: Parent directory of the coupon specimen data.
     :param str output_root: Parent directory to create the output directory in.
-    :return:
+    :return pd.DataFrame: Contains all the processed, filtered data collected by the function.
 
     - The structure of the specimen input directory must follow the specification. The behavior of this function
     depends on the files that exist.
@@ -122,7 +122,7 @@ def process_specimen_data(input_path, output_root):
         print('Syncing temperature data with Dion7 data...')
         final_data = sync_temperature(dion7_data, catman_data)
     else:
-        final_data = dion7_data
+        final_data = dion7_data.data
     # todo: add the filtering
 
     # Output the required files
@@ -132,4 +132,4 @@ def process_specimen_data(input_path, output_root):
     print('Generating the output...')
     generate_output(final_data, output_dir)
     print('Finished processing!')
-    return
+    return final_data
