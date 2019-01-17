@@ -1,8 +1,9 @@
 import os
 import errno
-from rlmtp.readers import import_dion7_data, import_catman_data
+from rlmtp.readers import import_dion7_data, import_catman_data, read_filter_info
 from rlmtp.sync_temperature import sync_temperature
 from rlmtp.plotting import stress_strain_plotter, temp_time_plotter
+from rlmtp.filtering import clean_data
 
 
 def dir_maker(directory):
@@ -51,10 +52,9 @@ def load_data_files(input_dir):
         print('\t catman data does NOT exist.')
     # filtering file
     try:
-        valid_file = [f for f in files_in_root if f[:5] == 'filter']
+        valid_file = [f for f in files_in_root if f[:6] == 'filter']
         filter_file = input_dir + valid_file[0]
-        # todo: add function to read the filter information
-        filter_data = None
+        filter_data = read_filter_info(filter_file)
         valid_filter_data = True
         print('\t Filtering information exists.')
     except (FileNotFoundError, IndexError):
@@ -88,7 +88,7 @@ def generate_output(data, output_dir):
     # Write the .csv file
     file_name = 'processed_data.csv'
     out_path = os.path.join(output_dir, file_name)
-    data.to_csv(out_path)
+    data.to_csv(out_path, index=False)
 
     # Write the figures
     stress_strain_plotter(data, output_dir)
@@ -117,13 +117,17 @@ def process_specimen_data(input_path, output_root):
     dion7_data = all_data['Dion7']
     if dion7_data is None:
         raise Exception('Dion7 data does not exist (in the correct format), exiting.')
+    # Add the temperature to the stress/strain data
     catman_data = all_data['catman']
     if catman_data is not None:
         print('Syncing temperature data with Dion7 data...')
         final_data = sync_temperature(dion7_data, catman_data)
     else:
         final_data = dion7_data.data
-    # todo: add the filtering
+    # Do the filtering
+    filter_info = all_data['filtering']
+    if filter_info is not None:
+        final_data = clean_data(final_data, filter_info)
 
     # Output the required files
     specimen_dir_name = os.path.normpath(input_path).split(os.path.sep)[-1]

@@ -1,4 +1,0 @@
-include rlmtp/tests/*.PNG
-include rlmtp/tests/*.png
-include rlmtp/tests/*.XLSX
-include rlmtp/tests/*.xlsx

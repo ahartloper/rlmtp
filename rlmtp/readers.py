@@ -131,3 +131,21 @@ def import_catman_data(file):
     """
     reader = ExcelCatmanReader()
     return reader.read(file)
+
+
+def read_filter_info(file):
+    """ Returns the info from the filter file.
+
+    :param str file: Path to the filter file.
+    :return dict: Contains: 'window', 'poly_order', 'anchors'
+    """
+    with open(file, 'r') as f:
+        l = f.readline().split(',')
+        window = int(l[0])
+        try:
+            poly_order = int(l[1])
+        except ValueError:
+            poly_order = 1
+        l = f.readline().split(',')
+        anchors = [int(x) for x in l]
+    return {'window': window, 'poly_order': poly_order, 'anchors': anchors}
