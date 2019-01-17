@@ -27,13 +27,13 @@ def load_data_files(input_dir):
     excel_path = 'Excel/'
     raw_path = 'rawData/'
     print('Checking files...')
-    files_in_excel = os.listdir(input_dir + excel_path)
-    files_in_raw = os.listdir(input_dir + raw_path)
+    files_in_excel = os.listdir(os.path.join(input_dir, excel_path))
+    files_in_raw = os.listdir(os.path.join(input_dir, raw_path))
     files_in_root = os.listdir(input_dir)
     # Dion7 data file
     try:
         valid_file = [f for f in files_in_excel if f[:8] == 'testData']
-        dion7_file = input_dir + excel_path + valid_file[0]
+        dion7_file = os.path.join(input_dir, excel_path + valid_file[0])
         dion7_data = import_dion7_data(dion7_file)
         valid_dion7_data = True
         print('\t Dion7 data exists.')
@@ -44,7 +44,7 @@ def load_data_files(input_dir):
     try:
         valid_file = [f for f in files_in_raw if f[:11] == 'Temperature']
         valid_file = [f for f in valid_file if (f[-4:].lower() == 'xlsx' or f[-3:].lower() == 'xls')]
-        catman_file = input_dir + raw_path + valid_file[0]
+        catman_file = os.path.join(input_dir, raw_path + valid_file[0])
         catman_data = import_catman_data(catman_file)
         valid_catman_data = True
         print('\t catman data exists.')
@@ -54,7 +54,7 @@ def load_data_files(input_dir):
     # filtering file
     try:
         valid_file = [f for f in files_in_root if f[:6] == 'filter']
-        filter_file = input_dir + valid_file[0]
+        filter_file = os.path.join(input_dir, valid_file[0])
         filter_data = read_filter_info(filter_file)
         valid_filter_data = True
         print('\t Filtering information exists.')
