@@ -43,6 +43,7 @@ def load_data_files(input_dir):
     # catman data file
     try:
         valid_file = [f for f in files_in_raw if f[:11] == 'Temperature']
+        valid_file = [f for f in valid_file if (f[-4:].lower() == 'xlsx' or f[-3:].lower() == 'xls')]
         catman_file = input_dir + raw_path + valid_file[0]
         catman_data = import_catman_data(catman_file)
         valid_catman_data = True
@@ -127,6 +128,7 @@ def process_specimen_data(input_path, output_root):
     # Do the filtering
     filter_info = all_data['filtering']
     if filter_info is not None:
+        print('Filtering the data...')
         final_data = clean_data(final_data, filter_info)
 
     # Output the required files

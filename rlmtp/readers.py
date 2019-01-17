@@ -138,6 +138,8 @@ def read_filter_info(file):
 
     :param str file: Path to the filter file.
     :return dict: Contains: 'window', 'poly_order', 'anchors'
+
+    - If a poly_order is not provided in file then returns the default of 1
     """
     with open(file, 'r') as f:
         l = f.readline().split(',')
