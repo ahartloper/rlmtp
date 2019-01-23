@@ -39,12 +39,13 @@ def reduce_data(x, y, t, anchors, window, poly_order=1):
         x_current = x[i_current]
         x_next = x[i_next]
         x_mid = 0.5 * (x_current + x_next)
+        # Fit the mid point based on the specified polynomial order
         z = np.polyfit(x[i_current:i_next], y[i_current:i_next], poly_order)
         p = np.poly1d(z)
         y_mid = p(x_mid)
         x_new = np.append(x_new, [x_current, x_mid])
         y_new = np.append(y_new, [y[i_current], y_mid])
-        t_mid = 0.5 * (t[i_current] + t[i_next])
+        t_mid = 0.5 * (t[i_current] + t[i_next])  # assumes that the rate is constant between the two points
         t_new = np.append(t_new, [t[i_current], t_mid])
         # Update the indices
         i_current = i_next
@@ -77,4 +78,6 @@ def clean_data(data, filter_info):
         if i == 0:
             cleaned_data['e_true'] = x_clean
             cleaned_data['C_1_Temps[s]'] = t_clean
+
+    print('Data reduced from {0} to {1} data points.'.format(len(x), len(x_clean)))
     return cleaned_data
