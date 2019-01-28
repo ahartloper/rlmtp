@@ -88,15 +88,57 @@ The filter_info file provides the specific values to filter and reduce the stres
 material parameter fitting.
 
 File format:
-- Line 1: window length, [optional] polyfit order
+- Line 1: window length, [optional] polyfit_order
 - Line 2: anchor_start, [anchor_i], anchor_end
 
-[anchor_i] are the optional anchor points corresponding to the 0-indexed data.
+Where polyfit_order is the order of line to fit between points (default is 1), anchor_start is the index of the first
+data point to include, anchor_end is the index of the last data point to include and [anchor_i] are the optional anchor
+points corresponding to the 0-indexed data between the start and end anchor points.
+Note that only the data bounded by anochor_start and anchor_end will be included in the processed output.
 
 ## Specimen Description Protocol
 
-To complete...
+This protocol is for the file [specimen_directory]/specimen_description.csv.
+The specimen_description file is optional, it's purpose is to keep a record the specimen properties, testing personnel,
+and testing machine for record keeping purposes.
+
+File format:
+- Line 1: [steel_id], [add_specs],
+- Line 2: [coupon_id], [coupon_dia],
+- Line 3: [coupon_origin], ,
+- Line 4: [dia_1], [dia_2], [dia_3]
+- Line 5: [DD-MM-YYYY], ,
+- Line 6: [personnel], [location], [machine]
+
+Where:
+- steel_id is the steel grade (e.g., S355) and add_specs are additional specifications (e.g., J2+N)
+- coupon_id is a designation of the coupon name from the dataset, and coupon_dia is the outer diameter (e.g., M20)
+- coupon_origin gives the origin of the dataset (e.g., 50 mm plate, HEB500 flange)
+- dia_1, dia_2, dia_3 are measurements of the effective coupon diameter
+- DD-MM-YYYY are the day, month, and year in ISO format when the test was conducted
+- personnel are the people who conducted the test, location is the place of testing, and machine is an id for the test
+setup
 
 ## Specimen PID Information Protocol
 
-To complete...
+This protocol is for the file [specimen_directory]/specimen_pid.csv.
+The specimen_pid file is optional, it's purpose is to keep a record of the PID parameters to diagnose any possible
+issues with the control of the test.
+The first set of parameters are those set prior to the test, while the second set of parameters are those used during
+the test.
+If only the parameters during the test are recorded, the two sets should be equal with each other.
+
+File format:
+- Line 1: force, [K_p], [T_i], [T_d]
+- Line 2: disp, [K_p], [T_i], [T_d]
+- Line 3: angle, [K_p], [T_i], [T_d]
+- Line 4: <blank>
+- Line 5: force, [K_p], [T_i], [T_d]
+- Line 6: disp, [K_p], [T_i], [T_d]
+- Line 7: angle, [K_p], [T_i], [T_d]
+
+Where K_p is the value of the proportional gain, T_i is the integral time, and T_d is the derivative time.
+Parameters should be recorded for the channels corresponding to force control (force), cross head displacement
+control (disp), and extensometer control (angle).
+The first three lines are for the parameters prior to the test, while the last three lines are for those used during the
+test.
