@@ -71,21 +71,37 @@ based on the model
 - sigma [Mpa]: the deduced stress in megapascals, equal to C_1_Force[kN] / deduced_area
 - epsilon: the deduced engineering strain, equal to C_1_{Ext_Channel}[mm] / gage_length
 - e_true: the deduced true strain, equal to ln(1 + epsilon)
-- sigma_true: the deduced true stress, equal to sigma [Mpa] * (1 - epsilon)
+- sigma_true: the deduced true stress, equal to sigma [Mpa] * (1 + epsilon)
 
-The sense of e_true and sigma_true should be such that compressive stresses and strains are negative and tensile strains
- are positive.
+The sense of sigma, epsilon, e_true, and sigma_true should be such that compressive stresses and strains are negative
+and tensile strains are positive.
 The sense of all the other measured values is arbitrary.
 
 ## Temperature Data File Protocol
 
-To complete...
+This protocol is for the file [specimen_directory]/rawData/Temperature_[test_id].xlsx.
+The temperature data file is optional, it provides the data for the measured temperature of the specimen throughout the
+loading.
+
+File format:
+- Line 2: Time 1 - sampling rate 1, [Time 1 - sampling rate 2], Load, Extenso, Temperature
+- Line 3: Unit, [Unit], Unit, Unit
+- Line 5: DD.MM.yy HH:MM:SS, [DD.MM.yy HH:MM:SS], DD.MM.yy HH:MM:SS, DD.MM.yy HH:MM:SS
+- Line 50: start of data, [start of data], start of data, start of data
+
+Notes:
+- There can be 4 or 5 columns in the data depending on the number of sampling rates used. The time data in 2 column is
+optional depending on the number of sampling rates. A maximum of two rates can be used.
+- The Temperature data MUST be associated with the time data that is contained in the first column (i.e., the sampling
+rate in line 6 must be equal in the temperature and first columns).
+- The standard unit of measurement for time is seconds, and degrees C for temperature.
+
 
 ## Filter Protocol
 
 This protocol is for the file [specimen_directory]/filter_info.csv.
-The filter_info file provides the specific values to filter and reduce the stress-strain data to be amenable for
-material parameter fitting.
+The filter_info file is optional, it provides the specific values to filter and reduce the stress-strain data to be
+amenable for material parameter fitting.
 
 File format:
 - Line 1: window length, [optional] polyfit_order

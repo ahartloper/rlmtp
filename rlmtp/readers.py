@@ -30,14 +30,14 @@ class ExcelCatmanReader(Reader):
         return
 
     def read(self, file):
-        # Import the data and remove the unncessary rows
+        # Import the data and remove the unnecessary rows
         data = pd.read_excel(file, header=self.header_rows)
         col_1 = data.columns[0]
         start_time = datetime.datetime.strptime(data[col_1][2], '%m.%d.%y %H:%M:%S')
         data.drop(range(47), inplace=True)
         data.reset_index(drop=True, inplace=True)
-        # Rename the columns
-        col_new_name = ['Time[s]']  # assume that the time is the first index
+        # Rename the columns to remove the spaces
+        col_new_name = ['Time[s]']  # assume that the time associated with temperature is the first column
         rename_dict = dict(zip(data.columns, col_new_name))
         # Find the temperature index
         for col in data.columns:
@@ -142,12 +142,12 @@ def read_filter_info(file):
     - If a poly_order is not provided in file then returns the default of 1
     """
     with open(file, 'r') as f:
-        l = f.readline().split(',')
-        window = int(l[0])
+        line = f.readline().split(',')
+        window = int(line[0])
         try:
-            poly_order = int(l[1])
+            poly_order = int(line[1])
         except ValueError:
             poly_order = 1
-        l = f.readline().split(',')
-        anchors = [int(x) for x in l]
+        line = f.readline().split(',')
+        anchors = [int(x) for x in line]
     return {'window': window, 'poly_order': poly_order, 'anchors': anchors}
