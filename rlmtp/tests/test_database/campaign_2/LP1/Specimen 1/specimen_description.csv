@@ -1,0 +1,16 @@
+steel_grade, S355
+fy_n, 355
+fu_n, 490
+specimen_id, D2
+specimen_source, HEB500 flange
+outer_dia_n, M20
+gage_length_n, 25
+reduced_dia_m, 10.00, 10.00, 9.99
+
+pid_force, 0.21, 0.26, 0.0
+pid_disp, 8.0, 0.1, 0.0
+pid_extenso, 68.0, 0.34, 0.0
+date, 07-01-2019
+personnel, A Hartloper
+location, EPFL RESSLab
+setup, w+b

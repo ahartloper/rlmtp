@@ -118,7 +118,7 @@ This protocol is for the file [specimen_directory]/specimen_description.csv.
 The specimen_description file is optional, it's purpose is to keep a record the specimen properties, testing personnel,
 testing machine, PID parameters, etc.,.
 
-The format of this file is not line specific, the order below is only recommended.
+The format of this file is not line specific, the order of lines below is only recommended.
 The first entry in each line is a specific keyword, and the entries given in brackets are the associated values.
 Only the keywords in the list below are recognized, any other keywords will not be parsed when processing the file.
 Empty lines are allowed, and will be ignored.

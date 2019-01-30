@@ -1,6 +1,7 @@
 import pandas as pd
 import datetime
 import warnings
+import collections
 from rlmtp.timed_data import TimedData
 
 
@@ -155,27 +156,51 @@ def read_filter_info(file):
 
 
 class DescriptionReader:
-    """ Reads the specimen_description.csv file. """
+    """ Reads the specimen_description.csv file.
 
-    def __init__(self, file):
-        """ Constructor.
+    Notes:
+    - Lines with multiple values (e.g., pid_force) are assigned multiple entries starting with 0 to the number of
+    values minus 1. Therefore, the line
+        pid_force, p, i, d
+    is parsed as pid_force_0: p, pid_force_1: i, pid_force_2: d.
+    - The read method returns a pd.DataFrame object.
+    - Each value is stored in the pd.DataFrame as one of the following types: datetime.date, float, str.
+    """
 
-        :param str file: Path to the description file.
-        """
-        self.file = file
-        self.description = pd.DataFrame(dtype=object)
-
-        self.accepted_inputs = ['steel_grade', 'add_spec', 'fy_n', 'fu_n', 'specimen_id', 'specimen_source',
-                                'outer_dia_n', 'gage_length_n', 'reduced_dia_m', 'pid_force', 'pid_disp', 'pid_extenso',
-                                'date', 'personnel', 'location', 'setup', 'ambient_temp']
+    def __init__(self):
+        """ Constructor, the allowable keywords are set here. """
+        # Key = allowable keywords in the specimen description file, value = title of each keyword
+        self.accepted_inputs = collections.OrderedDict([
+            ('steel_grade', 'Grade'),
+            ('add_spec', 'Spec.'),
+            ('specimen_source', 'Source'),
+            ('specimen_id', 'ID'),
+            ('outer_dia_n', 'Size'),
+            ('gage_length_n', 'Gage Length [mm]'),
+            ('reduced_dia_m', 'Reduced Dia. [mm]'),
+            ('fy_n', 'fy_n [MPa]'),
+            ('fu_n', 'fu_n [MPa]'),
+            ('ambient_temp', 'T_a [deg C]'),
+            ('date', 'Date'),
+            ('personnel', 'Investigator'),
+            ('location', 'Location'),
+            ('setup', 'Machine'),
+            ('pid_force', 'PID Force'),
+            ('pid_disp', 'PID Disp.'),
+            ('pid_extenso', 'PID Extenso.'),
+        ])
+        self.multiple_inputs = ['pid_force', 'pid_disp', 'pid_extenso', 'reduced_dia_m']
         return
 
-    def read(self):
+    def read(self, file):
         """ Returns the formatted information from the description file.
 
+        :param str file: Path to the description file.
         :return pd.DataFrame: Info from the description file.
         """
-        with open(self.file, 'r') as f:
+        description = pd.DataFrame(dtype=object)
+        allowable_keywords = self.accepted_inputs.keys()
+        with open(file, 'r') as f:
             for line in f:
                 if line.strip() is not '':
                     line_separated = line.split(',')
@@ -183,28 +208,28 @@ class DescriptionReader:
                     column = line_separated.pop(0)
                     data = line_separated
                     # Add the data if it's recognized
-                    if column in self.accepted_inputs:
+                    if column in allowable_keywords:
                         data_sanitized = self.sanitize_inputs(data)
                         if len(data) == 1:
-                            self.handle_single_data(column, data_sanitized)
+                            self.handle_single_data(description, column, data_sanitized)
                         else:
-                            self.handle_multi_data(column, data_sanitized)
+                            self.handle_multi_data(description, column, data_sanitized)
                     else:
                         warnings.warn(
                             'Description keyword "{0}" not recognized, I''m skipping this entry.'.format(column))
 
-        return self.description
+        return description
 
-    def handle_single_data(self, column, data):
+    def handle_single_data(self, description, column, data):
         """ Add entry to description that has only 1 value. """
-        self.description[column] = data
+        description[column] = data
         return
 
-    def handle_multi_data(self, column, data):
+    def handle_multi_data(self, description, column, data):
         """ Add multiple entries to description from multiple values. """
         for i in range(len(data)):
             new_col = column + '_' + str(i)
-            self.description[new_col] = data[i]
+            description[new_col] = data[i]
         return
 
     def sanitize_inputs(self, data):
