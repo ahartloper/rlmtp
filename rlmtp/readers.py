@@ -1,10 +1,11 @@
 import pandas as pd
 import datetime
+import warnings
 from rlmtp.timed_data import TimedData
 
 
 class Reader:
-    """ Base class for the readers for various data types. """
+    """ Base class for the readers for various numerical timed data types. """
 
     def __init__(self, start_row):
         """ Constructor.
@@ -151,3 +152,72 @@ def read_filter_info(file):
         line = f.readline().split(',')
         anchors = [int(x) for x in line]
     return {'window': window, 'poly_order': poly_order, 'anchors': anchors}
+
+
+class DescriptionReader:
+    """ Reads the specimen_description.csv file. """
+
+    def __init__(self, file):
+        """ Constructor.
+
+        :param str file: Path to the description file.
+        """
+        self.file = file
+        self.description = pd.DataFrame(dtype=object)
+
+        self.accepted_inputs = ['steel_grade', 'add_spec', 'fy_n', 'fu_n', 'specimen_id', 'specimen_source',
+                                'outer_dia_n', 'gage_length_n', 'reduced_dia_m', 'pid_force', 'pid_disp', 'pid_extenso',
+                                'date', 'personnel', 'location', 'setup', 'ambient_temp']
+        return
+
+    def read(self):
+        """ Returns the formatted information from the description file.
+
+        :return pd.DataFrame: Info from the description file.
+        """
+        with open(self.file, 'r') as f:
+            for line in f:
+                if line.strip() is not '':
+                    line_separated = line.split(',')
+                    line_separated = [l.strip() for l in line_separated]  # remove whitespaces at the start and end
+                    column = line_separated.pop(0)
+                    data = line_separated
+                    # Add the data if it's recognized
+                    if column in self.accepted_inputs:
+                        data_sanitized = self.sanitize_inputs(data)
+                        if len(data) == 1:
+                            self.handle_single_data(column, data_sanitized)
+                        else:
+                            self.handle_multi_data(column, data_sanitized)
+                    else:
+                        warnings.warn(
+                            'Description keyword "{0}" not recognized, I''m skipping this entry.'.format(column))
+
+        return self.description
+
+    def handle_single_data(self, column, data):
+        """ Add entry to description that has only 1 value. """
+        self.description[column] = data
+        return
+
+    def handle_multi_data(self, column, data):
+        """ Add multiple entries to description from multiple values. """
+        for i in range(len(data)):
+            new_col = column + '_' + str(i)
+            self.description[new_col] = data[i]
+        return
+
+    def sanitize_inputs(self, data):
+        """ Ensure that the description entries are in the proper format. """
+        try:
+            # First try converting to a date
+            dt = [datetime.datetime.strptime(d, '%d-%m-%Y') for d in data]
+            data_san = [datetime.date(day=dti.day, month=dti.month, year=dti.year) for dti in dt]
+        except ValueError:
+            try:
+                # Then try converting to a float
+                data_san = [float(d) for d in data]
+            except ValueError:
+                # OK keep the string
+                data_san = data
+        return data_san

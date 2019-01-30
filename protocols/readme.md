@@ -12,27 +12,27 @@ Optional values are given in brackets ([]), and optional files are also given in
 
 ```
 [specimen_directory]
-    +-- [filter_info.csv]
-    +-- [specimen_description.csv]
-    +-- [specimen_pid.csv]
-    +-- Excel
-    |   +-- testData_[test_id].xlsx
-    |   +-- stiffnessTest_[test_id].xlsx
-    +-- Latex
-    |   +-- [associated LaTeX files]
-    +-- Matlab
-    |   +-- [Matlab postprocessing files]
-    +-- Photos
-    |   +-- [photos taken during the test]
-    |   +-- [photos extracted from videos]
-    +-- rawData
-    |   +-- stiffnessTest_[test_id].lid
-    |   +-- stiffnessTest_[test_id].lia.xlsx
-    |   +-- testData_[test_id].lid
-    |   +-- testData_[test_id].lia.xlsx
-    |   +-- [Temperature_[test_id].xlsx]
-    +-- Videos
-    |   +-- [videos taken during the test]
++-- [filter_info.csv]
++-- [specimen_description.csv]
++-- [specimen_pid.csv]
++-- Excel
+|   +-- testData_[test_id].xlsx
+|   +-- stiffnessTest_[test_id].xlsx
++-- Latex
+|   +-- [associated LaTeX files]
++-- Matlab
+|   +-- [Matlab postprocessing files]
++-- Photos
+|   +-- [photos taken during the test]
+|   +-- [photos extracted from videos]
++-- rawData
+|   +-- stiffnessTest_[test_id].lid
+|   +-- stiffnessTest_[test_id].lia.xlsx
+|   +-- testData_[test_id].lid
+|   +-- testData_[test_id].lia.xlsx
+|   +-- [Temperature_[test_id].xlsx]
++-- Videos
+|   +-- [videos taken during the test]
 ```
 
 Notes:
@@ -116,45 +116,46 @@ Note that only the data bounded by anochor_start and anchor_end will be included
 
 This protocol is for the file [specimen_directory]/specimen_description.csv.
 The specimen_description file is optional, it's purpose is to keep a record the specimen properties, testing personnel,
-and testing machine for record keeping purposes.
+testing machine, PID parameters, etc.,.
+
+The format of this file is not line specific, the order below is only recommended.
+The first entry in each line is a specific keyword, and the entries given in brackets are the associated values.
+Only the keywords in the list below are recognized, any other keywords will not be parsed when processing the file.
+Empty lines are allowed, and will be ignored.
 
 File format:
-- Line 1: [steel_id], [add_specs],
-- Line 2: [coupon_id], [coupon_dia],
-- Line 3: [coupon_origin], ,
-- Line 4: [dia_1], [dia_2], [dia_3]
-- Line 5: [DD-MM-YYYY], ,
-- Line 6: [personnel], [location], [machine]
+- steel_grade, [grade]
+- add_spec, [additional_spec]
+- fy_n, [fy]
+- fu_n, [fu]
+- specimen_id, [tag]
+- specimen_source, [source]
+- outer_dia_n, [M-]
+- gage_length_n, [L]
+- reduced_dia_m, [d1], [d2], [d3]
+- pid_force, [p], [i], [d]
+- pid_disp, [p], [i], [d]
+- pid_extenso, [p], [i], [d]
+- date, [dd-mm-yyyy]
+- personnel, [name]
+- location, [location]
+- setup, [setup]
+- ambient_temp, [temperature]
 
 Where:
-- steel_id is the steel grade (e.g., S355) and add_specs are additional specifications (e.g., J2+N)
-- coupon_id is a designation of the coupon name from the dataset, and coupon_dia is the outer diameter (e.g., M20)
-- coupon_origin gives the origin of the dataset (e.g., 50 mm plate, HEB500 flange)
-- dia_1, dia_2, dia_3 are measurements of the effective coupon diameter
-- DD-MM-YYYY are the day, month, and year in ISO format when the test was conducted
-- personnel are the people who conducted the test, location is the place of testing, and machine is an id for the test
-setup
-
-## Specimen PID Information Protocol
-
-This protocol is for the file [specimen_directory]/specimen_pid.csv.
-The specimen_pid file is optional, it's purpose is to keep a record of the PID parameters to diagnose any possible
-issues with the control of the test.
-The first set of parameters are those set prior to the test, while the second set of parameters are those used during
-the test.
-If only the parameters during the test are recorded, the two sets should be equal with each other.
-
-File format:
-- Line 1: force, [K_p], [T_i], [T_d]
-- Line 2: disp, [K_p], [T_i], [T_d]
-- Line 3: angle, [K_p], [T_i], [T_d]
-- Line 4: <blank>
-- Line 5: force, [K_p], [T_i], [T_d]
-- Line 6: disp, [K_p], [T_i], [T_d]
-- Line 7: angle, [K_p], [T_i], [T_d]
-
-Where K_p is the value of the proportional gain, T_i is the integral time, and T_d is the derivative time.
-Parameters should be recorded for the channels corresponding to force control (force), cross head displacement
-control (disp), and extensometer control (angle).
-The first three lines are for the parameters prior to the test, while the last three lines are for those used during the
-test.
+- grade is the steel grade (e.g, S355)
+- additional_spec are any additional specifications for the steel (e.g., J2+N)
+- fy is the nominal yield stress in megapascals (e.g., 355)
+- fu is the nominal tensile stress in megapascals (e.g., 490)
+- tag is an identifier for the specific specimen (e.g., C2)
+- source is where the steel came from (e.g., HEB500 web, 25 mm plate)
+- M- is the nominal outer diameter of the specimen (e.g., M8, M20)
+- L is the nominal length of the reduced parallel section in millimeters
+- d1, d2, d3 are the measured diameters of the reduced parallel section in millimeters
+- p, i, d are the proportional (p = K_p), integral (i = T_i), and derivative (d = T_d) constants for the PID controller
+(force = force control, disp = cross-head displacement control, extenso = extensometer control)
+- dd-mm-yyyy is the day-month-year when the test is conducted
+- name is the name of the test personnel
+- location is the laboratory where the test was conducted (e.g., EPFL RESSLab)
+- setup is the name of the test machine (e.g., w+b)
+- temperature is the ambient room temperature when the test begins
