@@ -117,11 +117,13 @@ Note that only the data bounded by anochor_start and anchor_end will be included
 This protocol is for the file [specimen_directory]/specimen_description.csv.
 The specimen_description file is optional, it's purpose is to keep a record the specimen properties, testing personnel,
 testing machine, PID parameters, etc.,.
+The standard file can be found at rlmtp/rlmtp/tests/specimen_description_standard.csv
 
 The format of this file is not line specific, the order of lines below is only recommended.
 The first entry in each line is a specific keyword, and the entries given in brackets are the associated values.
 Only the keywords in the list below are recognized, any other keywords will not be parsed when processing the file.
 Empty lines are allowed, and will be ignored.
+
 
 File format:
 - steel_grade, [grade]
@@ -144,29 +146,30 @@ File format:
 - load_protocol, [LPN]
 
 Where:
-- grade is the steel grade (e.g, S355)
-- additional_spec are any additional specifications for the steel (e.g., J2+N)
-- fy is the nominal yield stress in megapascals (e.g., 355)
-- fu is the nominal tensile stress in megapascals (e.g., 490)
-- tag is an identifier for the specific specimen (e.g., C2)
-- source is where the steel came from (e.g., HEB500 web, 25 mm plate)
-- M- is the nominal outer diameter of the specimen (e.g., M8, M20)
-- L is the nominal length of the reduced parallel section in millimeters
-- d1, d2, d3 are the measured diameters of the reduced parallel section in millimeters, there must be exactly 3 values
-- p, i, d are the proportional (p = K_p), integral (i = T_i), and derivative (d = T_d) constants for the PID controller
-(force = force control, disp = cross-head displacement control, extenso = extensometer control), there must be exactly
-three values
-- dd-mm-yyyy is the day-month-year when the test is conducted
-- name is the name of the test personnel
-- location is the laboratory where the test was conducted (e.g., EPFL RESSLab)
-- setup is the name of the test machine (e.g., w+b)
-- temperature is the ambient room temperature when the test begins
-- LPN is the load protocol identification tag (e.g., LP1, LP9, DCY1)
+- [grade] is the steel grade (e.g, S355)
+- [additional_spec] are any additional specifications for the steel (e.g., J2+N)
+- [fy] is the nominal yield stress in megapascals (e.g., 355)
+- [fu] is the nominal tensile stress in megapascals (e.g., 490)
+- [tag] is an identifier for the specific specimen (e.g., C2)
+- [source] is where the steel came from (e.g., HEB500 web, 25 mm plate)
+- [M-] is the nominal outer diameter of the specimen (e.g., M8, M20)
+- [L] is the nominal length of the reduced parallel section in millimeters
+- [d1], [d2], [d3] are the measured diameters of the reduced parallel section in millimeters, there must be exactly 3
+values
+- [p], [i], [d] are the proportional (p = K_p), integral (i = T_i), and derivative (d = T_d) constants for the PID
+controller (force = force control, disp = cross-head displacement control, extenso = extensometer control),
+there must be exactly three values
+- [dd-mm-yyyy] is the day-month-year when the test is conducted
+- [name] is the name of the test personnel
+- [location] is the laboratory where the test was conducted (e.g., EPFL RESSLab)
+- [setup] is the name of the test machine (e.g., w+b)
+- [temperature] is the ambient room temperature when the test begins
+- [LPN] is the load protocol identification tag (e.g., LP1, LP9, DCY1)
 
 
 ## Database Management
 
-A hierachical structure is assumed for the database.
+A hierarchical structure is assumed for the database.
 The database is divided into Campaigns, where each campaign consists of several different load protocols, and each
 load protocol can be conducted on multiple specimens.
 The contents of each specimen_directory is defined in the "Specimen Directory Protocol" section.
@@ -175,10 +178,13 @@ For the database functions to work correctly the database of tests should be arr
 ```
 [database_root]
 +-- [campaign_1]
+|   +-- [load_protocol_1]
+|       +-- [specimen_directory_1]
+|       +-- [specimen_directory_2]
+|       +-- ...
 |   +-- [load_protocol_2]
-|       +-- [specimen_directory_3]
-        +-- ...
-    +-- ...
+|       +-- ...
+|   +-- ...
 +-- ...
 +-- [campaign_i]
 |   +-- [load_protocol_j]

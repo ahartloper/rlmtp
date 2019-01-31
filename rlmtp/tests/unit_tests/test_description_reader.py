@@ -6,7 +6,7 @@ from rlmtp.readers import DescriptionReader
 
 class TestDescription_reader(TestCase):
     def test_description_reader(self):
-        file = '../specimen_description_test.csv'
+        file = '../specimen_description_standard.csv'
         reader = DescriptionReader()
         result = reader.read(file)
 
