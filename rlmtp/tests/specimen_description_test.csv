@@ -8,6 +8,7 @@ outer_dia_n, [M-]
 gage_length_n, [L]
 reduced_dia_m, [d1], [d2], [d3]
 
+load_protocol, [LPx]
 pid_force, [p], [i], [d]
 pid_disp, [p], [i], [d]
 pid_extenso, [p], [i], [d]

@@ -29,3 +29,12 @@ class TestDescription_reader(TestCase):
             warnings.simplefilter("always")
             reader.read(file)
             assert issubclass(w[-1].category, UserWarning)
+
+    def test_get_columns(self):
+        reader = DescriptionReader()
+        x = reader.get_column_order()
+        y = reader.accepted_inputs.keys()
+        count = len(y) + 2 * len(reader.multiple_inputs)  # assumes 3 values per multiple input
+        self.assertTrue(len(x) == count)
+        self.assertTrue(x[0] == 'steel_grade')
+        self.assertTrue(x[-1] == 'pid_extenso_2')

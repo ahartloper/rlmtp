@@ -11,7 +11,8 @@ def construct_description_database(parent_directory):
     :return pd.DataFrame: Description database from all the specimens in the database.
     """
     description_reader = DescriptionReader()
-    database = pd.DataFrame(dtype=object)
+    all_columns = description_reader.get_column_order()
+    database = pd.DataFrame(dtype=object, columns=all_columns)
     file_to_find = 'specimen_description.csv'
     # Construct the database
     for root, dirs, files in os.walk(parent_directory):
@@ -22,54 +23,44 @@ def construct_description_database(parent_directory):
             # Now we read the data and add it to our database
             file = os.path.join(root, file_to_find)
             database = database.append(description_reader.read(file))
-    # TODO: figure out some way to order the columns according to the ordered dict in the description reader
-    # Reset the indices
+    # Order all the columns according to the specified order in the reader
+    database = database[all_columns]
+    # Reset the indices for all the rows
     database = database.reset_index(drop=True)
-    # Change the column names that correspond to multiple entries, needs to happen before the single entries
-    database = handle_multi_input(database, description_reader.multiple_inputs)
+    # Change the column names that correspond to multiple entries, assumed to happen before the single entries
+    database = handle_multi_input(database, description_reader)
     # Change the column names that correspond to single entries
-    database = database.rename(index=str, columns=description_reader.accepted_inputs)
+    rename_single = dict((k, v) for k, v in description_reader.accepted_inputs.items() if type(v) is not list)
+    database = database.rename(index=str, columns=rename_single)
     return database
 
 
-def handle_multi_input(database, multi_inputs):
+def handle_multi_input(database, description_reader):
     """ Renames or replaces columns that correspond to keyword with multiple values.
 
     :param pd.DataFrame database: Specimen description database.
-    :param list multi_inputs: (str) Keywords with multiple values.
+    :param DescriptionReader description_reader: Reader for the specimen description files.
     :return pd.DataFrame: Modified database.
 
     - The column names in database must be based on the keyword inputs for this function to work correctly.
     """
-    for input in multi_inputs:
-        # We have to handle each case separately
-        if input == 'pid_force':
+    for mi in description_reader.multiple_inputs:
+        # We have to handle the PID and the diameter cases separately
+        if mi[:3] == 'pid':
             column_rename = dict()
-            column_rename[input + '_0'] = 'PID Force K_p'
-            column_rename[input + '_1'] = 'PID Force T_i'
-            column_rename[input + '_2'] = 'PID Force T_d'
+            new_names = description_reader.accepted_inputs[mi]
+            for i, name in enumerate(new_names):
+                column_rename[mi + '_' + str(i)] = name
             database = database.rename(index=str, columns=column_rename)
-        elif input == 'pid_disp':
-            column_rename = dict()
-            column_rename[input + '_0'] = 'PID Disp. K_p'
-            column_rename[input + '_1'] = 'PID Disp. T_i'
-            column_rename[input + '_2'] = 'PID Disp. T_d'
-            database = database.rename(index=str, columns=column_rename)
-        elif input == 'pid_extenso':
-            column_rename = dict()
-            column_rename[input + '_0'] = 'PID Extenso. K_p'
-            column_rename[input + '_1'] = 'PID Extenso. T_i'
-            column_rename[input + '_2'] = 'PID Extenso. T_d'
-            database = database.rename(index=str, columns=column_rename)
-        elif input == 'reduced_dia_m':
-            cols = [input + '_' + str(i) for i in range(3)]
+        elif mi == 'reduced_dia_m':
+            cols = [mi + '_' + str(i) for i in range(3)]
             avg = database[cols].mean(axis=1)
-            new_name = 'Avg. Red. Dia [mm]'
+            new_name = description_reader.accepted_inputs[mi][0]
             database = database.drop(cols, axis=1)
             ind_gage_length = database.columns.get_loc('gage_length_n') + 1  # +1 to insert after
             database.insert(ind_gage_length, new_name, avg)
         else:
-            warnings.warn('Could not find the multi-index keyword "{0}" in the database.'.format(input))
+            warnings.warn('Could not find the multi-index keyword "{0}" in the database.'.format(mi))
 
     return database
 

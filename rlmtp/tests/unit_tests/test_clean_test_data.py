@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from rlmtp.filtering import reduce_data, clean_data
 from rlmtp.readers import import_dion7_data, read_filter_info
 
-
+# todo: clean up these tests
 class TestClean_test_data(TestCase):
     def test_reduce_data(self):
         data_path = '../testData_07012018.xlsx'

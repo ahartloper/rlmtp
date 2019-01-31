@@ -141,6 +141,7 @@ File format:
 - location, [location]
 - setup, [setup]
 - ambient_temp, [temperature]
+- load_protocol, [LPN]
 
 Where:
 - grade is the steel grade (e.g, S355)
@@ -151,11 +152,38 @@ Where:
 - source is where the steel came from (e.g., HEB500 web, 25 mm plate)
 - M- is the nominal outer diameter of the specimen (e.g., M8, M20)
 - L is the nominal length of the reduced parallel section in millimeters
-- d1, d2, d3 are the measured diameters of the reduced parallel section in millimeters
+- d1, d2, d3 are the measured diameters of the reduced parallel section in millimeters, there must be exactly 3 values
 - p, i, d are the proportional (p = K_p), integral (i = T_i), and derivative (d = T_d) constants for the PID controller
-(force = force control, disp = cross-head displacement control, extenso = extensometer control)
+(force = force control, disp = cross-head displacement control, extenso = extensometer control), there must be exactly
+three values
 - dd-mm-yyyy is the day-month-year when the test is conducted
 - name is the name of the test personnel
 - location is the laboratory where the test was conducted (e.g., EPFL RESSLab)
 - setup is the name of the test machine (e.g., w+b)
 - temperature is the ambient room temperature when the test begins
+- LPN is the load protocol identification tag (e.g., LP1, LP9, DCY1)
+
+
+## Database Management
+
+A hierachical structure is assumed for the database.
+The database is divided into Campaigns, where each campaign consists of several different load protocols, and each
+load protocol can be conducted on multiple specimens.
+The contents of each specimen_directory is defined in the "Specimen Directory Protocol" section.
+
+For the database functions to work correctly the database of tests should be arranged as follows:
+```
+[database_root]
++-- [campaign_1]
+|   +-- [load_protocol_2]
+|       +-- [specimen_directory_3]
+        +-- ...
+    +-- ...
++-- ...
++-- [campaign_i]
+|   +-- [load_protocol_j]
+|       +-- [specimen_directory_k]
+```
+
+If the above structure is followed for the database, a summary of all the tests in the database can be written to file
+using the write_description_database function called on the database_root.

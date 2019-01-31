@@ -175,9 +175,10 @@ class DescriptionReader:
             ('add_spec', 'Spec.'),
             ('specimen_source', 'Source'),
             ('specimen_id', 'ID'),
+            ('load_protocol', 'LP'),
             ('outer_dia_n', 'Size'),
             ('gage_length_n', 'Gage Length [mm]'),
-            ('reduced_dia_m', 'Reduced Dia. [mm]'),
+            ('reduced_dia_m', ['Avg. Reduced Dia. [mm]']),
             ('fy_n', 'fy_n [MPa]'),
             ('fu_n', 'fu_n [MPa]'),
             ('ambient_temp', 'T_a [deg C]'),
@@ -185,9 +186,9 @@ class DescriptionReader:
             ('personnel', 'Investigator'),
             ('location', 'Location'),
             ('setup', 'Machine'),
-            ('pid_force', 'PID Force'),
-            ('pid_disp', 'PID Disp.'),
-            ('pid_extenso', 'PID Extenso.'),
+            ('pid_force', ['PID Force K_p', 'PID Force T_i', 'PID Force T_d']),
+            ('pid_disp', ['PID Disp. K_p', 'PID Disp. T_i', 'PID Disp. T_d']),
+            ('pid_extenso', ['PID Extenso. K_p', 'PID Extenso. T_i', 'PID Extenso. T_d']),
         ])
         self.multiple_inputs = ['pid_force', 'pid_disp', 'pid_extenso', 'reduced_dia_m']
         return
@@ -246,3 +247,31 @@ class DescriptionReader:
                 # OK keep the string
                 data_san = data
         return data_san
+
+    def get_column_order(self):
+        """ Returns the order of the keywords, including expanded multi-inputs, based on the accepted inputs.
+
+        :return list: (str) Ordered keywords.
+
+        Notes:
+        - This function can be used to order the columns of a database.
+        - The keywords for multiple inputs are expanded, e.g., pid_force -> pid_force_0, pid_force_1, pid_force_2
+        """
+        columns = list(self.accepted_inputs.keys())
+        # Handle the keywords with multiple input values
+        for mi in self.multiple_inputs:
+            if mi[:3] == 'pid':
+                num_multi = len(self.accepted_inputs[mi])
+                if num_multi > 1:
+                    i = columns.index(mi)
+                    del columns[i]
+                    columns[i:i] = [mi + '_' + str(j) for j in range(num_multi)]
+            else:
+                # This is a bit of a hack for the case where we have 3 diameter measurements and will not work if
+                # we have more than three measurements for the diameter...
+                num_multi = 3
+                if num_multi > 1:
+                    i = columns.index(mi)
+                    del columns[i]
+                    columns[i:i] = [mi + '_' + str(j) for j in range(num_multi)]
+        return columns
