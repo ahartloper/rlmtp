@@ -1,4 +1,4 @@
-# RESSForLab
+# RESSLab Material Test Processing
 
 ## Installation
 
@@ -10,7 +10,7 @@ For now, see the examples folder.
 
 ## Contributing
 
-Bug fixes can be raised by opening a new issue in the rlmtp repository.
+Via contact with Alex Hartloper for now.
 
 ## Authors
 
