@@ -63,7 +63,7 @@ class ExcelCatmanReader(Reader):
 class ExcelDion7Reader(Reader):
     # this will return a TimedData object properly formatted
 
-    def __init__(self, start_row=7):
+    def __init__(self, start_row=8):
         Reader.__init__(self, start_row - 2)
         return
 
