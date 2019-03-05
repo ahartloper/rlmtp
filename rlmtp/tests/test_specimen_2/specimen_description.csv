@@ -1,0 +1,19 @@
+steel_grade, S355
+add_spec, [additional_spec]
+fy_n, 355
+fu_n, 490
+specimen_id, C9
+specimen_source, HEB500 web
+outer_dia_n, M12
+gage_length_n, 9
+reduced_dia_m, 5.99, 5.99, 5.99
+
+load_protocol, LP1
+pid_force, [p], [i], [d]
+pid_disp, [p], [i], [d]
+pid_extenso, [p], [i], [d]
+date, 25-02-2019
+personnel, A Hartloper
+location, EPFL RESSLab
+setup, Shenck Trebel 250kN
+ambient_temp, 20.2

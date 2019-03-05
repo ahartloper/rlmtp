@@ -1,3 +1,10 @@
+"""@package processing
+Main driver post-processing functions of rlmtp.
+
+The driver functions are responsible for constructing the appropriate objects and calling functions to post-process the
+data. Generally the data is required to be stored according to the protocols outlined in protocols/readme.md.
+"""
+
 import os
 import errno
 from rlmtp.readers import import_dion7_data, import_catman_data, read_filter_info
@@ -101,10 +108,11 @@ def generate_output(data, output_dir):
 def process_specimen_data(input_path, output_root):
     """ Generates the final .csv output and plots the relevant data.
 
-    :param str input_path: Parent directory of the coupon specimen data.
+    :param str input_path: Specimen directory.
     :param str output_root: Parent directory to create the output directory in.
     :return pd.DataFrame: Contains all the processed, filtered data collected by the function.
 
+    - For the definition of the specimen directory see rlmtp/protocols/readme.md
     - The structure of the specimen input directory must follow the specification. The behavior of this function
     depends on the files that exist.
     - The Dion7 data must exist for this function to run, temperature and filtering data are optional.

@@ -1,3 +1,9 @@
+"""@package sync_video
+Functions to extract frames from videos at specified increments or times.
+
+Note: requires ffmpeg to be installed on your system.
+"""
+
 import subprocess
 import os
 import datetime

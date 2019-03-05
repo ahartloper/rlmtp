@@ -1,3 +1,7 @@
+"""@package plotting
+Functions to plot the stress-strain and temperature-time according to the pre-specified figure format.
+"""
+
 import os
 import matplotlib.pyplot as plt
 import warnings

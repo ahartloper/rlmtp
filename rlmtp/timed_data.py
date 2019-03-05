@@ -1,3 +1,9 @@
+"""@package timed_data
+Object to store data that starts at a specific time and has a specific sampling rate.
+
+TimedData objects are generally used to store temperature and stress-strain data.
+"""
+
 import datetime
 
 

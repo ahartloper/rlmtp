@@ -1,3 +1,7 @@
+"""@package filtering
+Functions to filter and reduce the stress-strain data.
+"""
+
 import numpy as np
 import pandas as pd
 
@@ -60,9 +64,11 @@ def reduce_data(x, y, t, anchors, window, poly_order=1):
 def clean_data(data, filter_info):
     """ Returns the filtered and cleaned data.
 
-    :param pd.DataFrame data: As loaded data.
+    :param pd.DataFrame data: As loaded stress-strain and time data.
     :param dict filter_info: Information from the filter file, see rlmtp.readers.read_filter_info().
     :return pd.DataFrame: Cleaned data.
+
+    - Requires that the columns 'Sigma_true', 'Temperature[C]', 'e_true', and 'C_1_Temps[s]' exist in data.
     """
     # Filter the specified columns given the e_true column
     cols_to_include = ['Sigma_true', 'Temperature[C]']

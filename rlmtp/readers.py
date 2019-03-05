@@ -1,3 +1,7 @@
+"""@package readers
+Readers for various input files.
+"""
+
 import pandas as pd
 import datetime
 import warnings

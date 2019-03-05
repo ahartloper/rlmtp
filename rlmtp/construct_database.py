@@ -1,3 +1,7 @@
+"""@package construct_database
+Functions to compile specimen description databases.
+"""
+
 import os
 import pandas as pd
 import warnings

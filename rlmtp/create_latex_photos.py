@@ -1,3 +1,8 @@
+"""@package create_latex_photos
+Functions to write a LaTeX file containing figures in the specified directory.
+
+Can be called as a script or by using the latex_photo_compiler function.
+"""
 import os
 import sys
 import errno

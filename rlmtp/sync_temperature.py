@@ -1,3 +1,7 @@
+"""@package sync_temperature
+Functions to synchronize the Dion7 data with the catman temperature data.
+"""
+
 import datetime
 import numpy as np
 # import matplotlib.pyplot as plt
