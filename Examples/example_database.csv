@@ -1,3 +1,3 @@
-,Grade,Spec.,Source,ID,Size,Gage Length [mm],Avg. Reduced Dia. [mm],fy_n [MPa],fu_n [MPa],T_a [deg C],Date,Investigator,Location,Machine,PID Force K_p,PID Force T_i,PID Force T_d,PID Disp. K_p,PID Disp. T_i,PID Disp. T_d,PID Extenso. K_p,PID Extenso. T_i,PID Extenso. T_d
-0,S355,,HEB500 web,C12,M8,25,4.00333,355,490,,2019-01-07,A Hartloper,EPFL RESSLab,w+b,0.21,0.26,0,8,0.1,0,68,0.34,0
-1,S355,,HEB500 flange,D2,M20,25,9.99667,355,490,,2019-01-07,A Hartloper,EPFL RESSLab,w+b,0.21,0.26,0,8,0.1,0,68,0.34,0
+,Grade,Spec.,Source,ID,LP,Size,Gage Length [mm],Avg. Reduced Dia. [mm],fy_n [MPa],fu_n [MPa],T_a [deg C],Date,Investigator,Location,Machine,PID Force K_p,PID Force T_i,PID Force T_d,PID Disp. K_p,PID Disp. T_i,PID Disp. T_d,PID Extenso. K_p,PID Extenso. T_i,PID Extenso. T_d
+0,S355,,HEB500 web,C12,,M8,25,4.00333,355,490,,2019-01-07,A Hartloper,EPFL RESSLab,w+b,0.21,0.26,0,8,0.1,0,68,0.34,0
+1,S355,,HEB500 flange,D2,,M20,25,9.99667,355,490,,2019-01-07,A Hartloper,EPFL RESSLab,w+b,0.21,0.26,0,8,0.1,0,68,0.34,0
