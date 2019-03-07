@@ -53,6 +53,7 @@ S/No, System Date, C_1_Temps[s], C_1_Force[kN], C_1_{Ext_Channel}[mm], C_1_Dépl
 ```
 {Ext_Channel} is either Angle or Deform1.
 Each of these columns are the title of a particular data channel in Dion7.
+Note that the brackets here indicate the units of the data, and DO NOT indicate optional arguments.
 
 - The data for each channel associated with its column starts on the following line (Line 8).
 
@@ -75,6 +76,7 @@ based on the model
 The sense of sigma, epsilon, e_true, and sigma_true should be such that compressive stresses and strains are negative
 and tensile strains are positive.
 The sense of all the other measured values is arbitrary.
+Note: the brackets here indicate the units of the data, and DO NOT indicate optional arguments.
 
 ## Temperature Data File Protocol
 
@@ -116,7 +118,6 @@ Note that only the data bounded by anochor_start and anchor_end will be included
 This protocol is for the file [specimen_directory]/specimen_description.csv.
 The specimen_description file is optional, it's purpose is to keep a record the specimen properties, testing personnel,
 testing machine, PID parameters, etc.,.
-The standard file can be found at rlmtp/rlmtp/tests/specimen_description_standard.csv
 
 The format of this file is not line specific, the order of lines below is only recommended.
 The first entry in each line is a specific keyword, and the entries given in brackets are the associated values.
@@ -161,7 +162,7 @@ there must be exactly three values
 - \[dd-mm-yyyy\] is the day-month-year when the test is conducted
 - \[name\] is the name of the test personnel
 - \[location\] is the laboratory where the test was conducted (e.g., EPFL RESSLab)
-- \[setup\] is the name of the test machine (e.g., w+b)
+- \[setup\] is the name of the test machine (e.g., Shenck Trebel 250kN)
 - \[temperature\] is the ambient room temperature when the test begins
 - \[LPN\] is the load protocol identification tag (e.g., LP1, LP9, DCY1)
 
@@ -192,3 +193,29 @@ For the database functions to work correctly the database of tests should be arr
 
 If the above structure is followed for the database, a summary of all the tests in the database can be written to file
 using the write_description_database function called on the database_root.
+
+An example of the structure of a database is
+```
++-- S355 HEB500 web
+|   +-- LP1
+|       +-- Specimen 1
+|       +-- Specimen 2
+|   +-- LP2
+|       +-- Specimen 1
+|   +-- LP5
+|       +-- Specimen 1
+|   +-- LP6
+|       +-- Specimen 2
+|   +-- LP9
+|       +-- Specimen 1
++-- S355 HEB500 flange
+|   +-- LP1
+|       +-- Specimen 1
+|   +-- LP2
+|       +-- Specimen 1
+|   +-- LP5
+|       +-- Specimen 1
+```
+Each of the "Specimen [N]" directories conform to the specimen directory protocol outlined at the beginning of this
+document.
+The "S355 HEB500 web" and "S355 HEB500 flange" constitute two separate campaigns.

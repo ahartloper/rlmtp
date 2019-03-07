@@ -86,43 +86,43 @@ def load_data_files(input_dir):
     return data
 
 
-def generate_output(data, output_dir):
+def generate_output(data, output_dir, pre_name):
     """ Creates the output files in the specified directory.
 
     :param pd.DataFrame data: Contains all the data to save to file.
     :param str output_dir: Directory where files will be saved.
+    :param str pre_name: String prepended to all the output file names.
     :return:
     """
     # Write the .csv file
-    file_name = 'processed_data.csv'
+    file_name = pre_name + '_' + 'processed_data.csv'
     out_path = os.path.join(output_dir, file_name)
     data.to_csv(out_path, index=False)
 
     # Write the figures
-    stress_strain_plotter(data, output_dir)
+    stress_strain_plotter(data, output_dir, pre_name)
     if 'Temperature[C]' in data.columns:
-        temp_time_plotter(data, output_dir)
+        temp_time_plotter(data, output_dir, pre_name)
     return
 
 
-def process_specimen_data(input_path, output_root):
+def process_specimen_data(input_dir, output_dir):
     """ Generates the final .csv output and plots the relevant data.
 
-    :param str input_path: Specimen directory.
-    :param str output_root: Parent directory to create the output directory in.
+    :param str input_dir: Specimen directory containing the data.
+    :param str output_dir: Directory where the output will be saved.
     :return pd.DataFrame: Contains all the processed, filtered data collected by the function.
 
     - For the definition of the specimen directory see rlmtp/protocols/readme.md
     - The structure of the specimen input directory must follow the specification. The behavior of this function
     depends on the files that exist.
     - The Dion7 data must exist for this function to run, temperature and filtering data are optional.
-    - The output directory gets the same name as the input directory.
-    - A new directory is created in the output_root if it does not exist already, all the processed files are placed
-    in this directory.
+    - All of the output names are prepended by a string based on the input_dir string. For details on the prepended
+    string, see the get_pre_name function.
     - If the temperature data exists, it is synced with the Dion7 data.
     """
     # Check to see if the correct files exist, and load the data
-    all_data = load_data_files(input_path)
+    all_data = load_data_files(input_dir)
     dion7_data = all_data['Dion7']
     if dion7_data is None:
         raise Exception('Dion7 data does not exist (in the correct format), exiting.')
@@ -140,10 +140,33 @@ def process_specimen_data(input_path, output_root):
         final_data = clean_data(final_data, filter_info)
 
     # Output the required files
-    specimen_dir_name = os.path.normpath(input_path).split(os.path.sep)[-1]
-    output_dir = os.path.join(output_root, specimen_dir_name)
+    pre_name = get_pre_name(input_dir)
     dir_maker(output_dir)
     print('Generating the output...')
-    generate_output(final_data, output_dir)
+    generate_output(final_data, output_dir, pre_name)
     print('Finished processing!')
     return final_data
+
+
+def get_pre_name(input_dir):
+    """ Returns a string that indicates the last or the last two directories of input_dir.
+
+    :param str input_dir: Path to the input directory.
+    :return str: String to prepend output with to indicate where it came from.
+
+    - If the input directory has no parent specified then the string returned is just the input_dir.
+    - If the parent of the input_dir is "." or ".." then only the last directory of input_dir is returned.
+    - In the general case, the string returned is 'sd2_sd1' if for example input_dir = './sd2/sd1/' .
+    """
+    split_path = os.path.normpath(input_dir).split(os.path.sep)
+    if len(split_path) == 1:
+        # Only one directory so just prepend with this one
+        pre_name = split_path[0]
+    else:
+        if split_path[-2][0] == '.':
+            # The second last subdirectory is either the current or parent directory, just use the last
+            pre_name = split_path[-1]
+        else:
+            # Prepend with the second last and last directories
+            pre_name = '_'.join(split_path[-2:])
+    return pre_name

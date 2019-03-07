@@ -16,9 +16,9 @@ def safe_savefig(path):
     return
 
 
-def stress_strain_plotter(data, output_dir):
+def stress_strain_plotter(data, output_dir, pre_name):
     """ Plots the true stress versus true strain. """
-    file_name = 'stress_strain_plot.pdf'
+    file_name = pre_name + '_' + 'stress_strain_plot.pdf'
     out_path = os.path.join(output_dir, file_name)
     plt.figure()
     plt.plot(data['e_true'], data['Sigma_true'], c='0.15', label='Test', lw=0.5)
@@ -30,9 +30,9 @@ def stress_strain_plotter(data, output_dir):
     return
 
 
-def temp_strain_plotter(data, output_dir):
+def temp_strain_plotter(data, output_dir, pre_name):
     """ Plots the temperature vs true strain. """
-    file_name = 'temperature_strain_plot.pdf'
+    file_name = pre_name + '_' + 'temperature_strain_plot.pdf'
     out_path = os.path.join(output_dir, file_name)
     plt.figure()
     plt.plot(data['e_true'], data['Temperature[C]'], c='0.15', label='Test', lw=0.5)
@@ -44,9 +44,9 @@ def temp_strain_plotter(data, output_dir):
     return
 
 
-def temp_time_plotter(data, output_dir):
+def temp_time_plotter(data, output_dir, pre_name):
     """ Plots the temperature versus time. """
-    file_name = 'temperature_time_plot.pdf'
+    file_name = pre_name + '_' + 'temperature_time_plot.pdf'
     out_path = os.path.join(output_dir, file_name)
     plt.figure()
     plt.plot(data['C_1_Temps[s]'], data['Temperature[C]'], c='0.15', label='Test', lw=0.5)
