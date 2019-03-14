@@ -143,20 +143,33 @@ def read_filter_info(file):
     """ Returns the info from the filter file.
 
     :param str file: Path to the filter file.
-    :return dict: Contains: 'window', 'poly_order', 'anchors'
+    :return dict: Information for filtering.
+        list 'window': (int) Window lengths for each set.
+        list 'poly_order': (int) Fit each window length with polynomial of order.
+        list 'anchors': (list of int) Indices that must be included in the data.
 
-    - If a poly_order is not provided in file then returns the default of 1
+    Notes:
+        - If a poly_order is not provided in file then returns the default of 1
+        - See protocols/readme.md for the specification on the filter_info.csv file.
     """
+    line_mod = 2
+    windows = []
+    poly_orders = []
+    anchors = []
     with open(file, 'r') as f:
-        line = f.readline().split(',')
-        window = int(line[0])
-        try:
-            poly_order = int(line[1])
-        except ValueError:
-            poly_order = 1
-        line = f.readline().split(',')
-        anchors = [int(x) for x in line]
-    return {'window': window, 'poly_order': poly_order, 'anchors': anchors}
+        for i, line in enumerate(f):
+            l_split = line.split(',')
+            if i % line_mod == 0:
+                # Even numbered line, so contains window lengths and poly orders
+                windows.append(int(l_split[0]))
+                try:
+                    poly_orders.append(int(l_split[1]))
+                except ValueError:
+                    poly_orders.append(1)
+            else:
+                # Odd numbered line, contains anchor points
+                anchors.append([int(x) for x in l_split])
+    return {'window': windows, 'poly_order': poly_orders, 'anchors': anchors}
 
 
 class DescriptionReader:

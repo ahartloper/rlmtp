@@ -105,13 +105,27 @@ The filter_info file is optional, it provides the specific values to filter and 
 amenable for material parameter fitting.
 
 File format:
-- Line 1: window length, \[optional\] polyfit_order
-- Line 2: anchor_start, \[anchor_i\], anchor_end
+- Line 1: window\_length\_1, \[optional\] polyfit\_order\_1
+- Line 2: anchor\_start\_1, \[anchor_i\], anchor\_end\_1
+- Line 2*j: window\_length\_j, \[optional\] polyfit\_order\_j
+- Line 2*j+1: anchor\_start_\j, \[anchor_i\], anchor\_end\_j
 
-Where polyfit_order is the order of line to fit between points (default is 1), anchor_start is the index of the first
-data point to include, anchor_end is the index of the last data point to include and [anchor_i] are the optional anchor
-points corresponding to the 0-indexed data between the start and end anchor points.
-Note that only the data bounded by anochor_start and anchor_end will be included in the processed output.
+The filter information is provided in sets, each set has a particular window length, polyfit order, and anchor points.
+Each set is specified on two sequential lines, an unlimited number of sets may be specified.
+This is to allow for different filtering strategies in different data sequences in the same test, where the data saving
+rate or strain rate may vary within the test.
+
+window\_length\_1 is an integer specifying the maximum jump between data indices, the greater this value is the less
+data points in the filtered data.
+polyfit_order\_1 is the order of line to fit between the final points (default value is 1) for the first set.
+anchor\_start\_1 is the index of the first data point to include in the first set,
+anchor_end\_1 is the index of the last data point to include,
+and [anchor_i] are the optional anchor points corresponding to the 0-indexed data between the start and end anchor
+points.
+Additional data sets filtered using window\_length\_j and polyfit\_order\_j are specified on additional lines.
+
+Note that only the data bounded by anochor\_start\_1 and anchor\_end\_j (or anchor\_end\_1 if only one set of anchor
+points is specified) will be included in the processed output.
 
 ## Specimen Description Protocol
 
