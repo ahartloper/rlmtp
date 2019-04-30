@@ -23,6 +23,12 @@ def reduce_data(x, y, t, anchors, window, poly_order=1):
     where n resets at each new anchor interval.
     - One point is added at the mid point of each window based on a best-fit polynomial of order = poly_order.
     """
+    # Check for missing entries in the data and check that the anchor points don't go past the end of x or y
+    x2 = x[np.logical_not(np.isnan(x))]
+    y2 = x[np.logical_not(np.isnan(x))]
+    if len(x2) != len(y2) or max(anchors) > len(x2) or max(anchors) > len(y2):
+        raise Exception('Bad stress or strain vector: likely missing entries in your stress-strain data.')
+
     x_new = np.array([])
     y_new = np.array([])
     t_new = np.array([])
@@ -68,7 +74,9 @@ def clean_data(data, filter_info):
     :param dict filter_info: Information from the filter file, see rlmtp.readers.read_filter_info().
     :return pd.DataFrame: Cleaned data.
 
-    - Requires that the columns 'Sigma_true', 'Temperature[C]', 'e_true', and 'C_1_Temps[s]' exist in data.
+    Notes:
+        - Requires that the columns 'Sigma_true', 'e_true', and 'C_1_Temps[s]' exist in data.
+        - Column 'Temperature[C]' is optional
     """
     # Filter the specified columns given the e_true column
     cols_to_include = ['Sigma_true', 'Temperature[C]']
@@ -76,14 +84,49 @@ def clean_data(data, filter_info):
     x = data['e_true']
     t = data['C_1_Temps[s]']
     cleaned_data = pd.DataFrame()
+    # Get the info for the filtering
+    anchors = filter_info['anchors']
+    windows = filter_info['window']
+    poly_orders = filter_info['poly_order']
     for i, c in enumerate(columns):
-        y = data[c]
-        [x_clean, y_clean, t_clean] = reduce_data(x, y, t, filter_info['anchors'], filter_info['window'],
-                                                  filter_info['poly_order'])
-        cleaned_data[c] = y_clean
+        x_stack = np.array([])
+        t_stack = np.array([])
+        y_stack = np.array([])
+        for j in range(len(windows)):
+            # Process each set separately and append the data
+            a = anchors[j]
+            w = windows[j]
+            po = poly_orders[j]
+            # Process stress-strain and temperature-strain separately
+            y = data[c]
+            # If not the first set, add the last anchor point from the previous set to have continuous data
+            if j > 0:
+                # Prepend last value of previous set
+                a = [anchors[j - 1][-1]] + a
+            [x_clean, y_clean, t_clean] = reduce_data(x, y, t, a, w, po)
+            # For the first column we need to add all the data
+            if i == 0:
+                if j == 0:
+                    # Add all the data in the first set
+                    x_stack = np.append(x_stack, x_clean)
+                    t_stack = np.append(t_stack, t_clean)
+                    y_stack = np.append(y_stack, y_clean)
+                else:
+                    # Don't add the first data point since it was included in the previous set
+                    x_stack = np.append(x_stack, x_clean[1:])
+                    t_stack = np.append(t_stack, t_clean[1:])
+                    y_stack = np.append(y_stack, y_clean[1:])
+            else:
+                # After the first column the x and t don't change so just add the y data
+                y_stack = np.append(y_stack, y_clean)
+        # If first column add all the data to cleaned data
         if i == 0:
-            cleaned_data['e_true'] = x_clean
-            cleaned_data['C_1_Temps[s]'] = t_clean
+            cleaned_data['e_true'] = x_stack
+            cleaned_data['C_1_Temps[s]'] = t_stack
+            cleaned_data[c] = y_stack
+        else:
+            # Just add the y data since the x and t are the same
+            cleaned_data[c] = y_stack
 
-    print('Data reduced from {0} to {1} data points.'.format(len(x), len(x_clean)))
+    print('Data reduced from {0} to {1} data points.'.format(len(x), len(y_stack)))
     return cleaned_data

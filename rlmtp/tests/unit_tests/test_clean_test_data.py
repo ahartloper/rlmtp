@@ -1,7 +1,7 @@
 from unittest import TestCase
 import numpy as np
 import matplotlib.pyplot as plt
-from rlmtp.filtering import reduce_data
+from rlmtp.filtering import reduce_data, clean_data
 from rlmtp.readers import import_dion7_data
 
 
@@ -25,3 +25,21 @@ class TestClean_test_data(TestCase):
         # plt.show()
 
         self.assertEqual(len(clean_data[0]), 2847)
+
+    def test_clean_data(self):
+        data_path = '../testData_07012018.xlsx'
+        dion7_data = import_dion7_data(data_path)
+        window = [13, 13]
+        poly_order = [1, 1]
+        inds = [[0, 776, 1478, 2480, 3834, 5504, 7532, 9871, 12556, 15236, 15397, 15535, 15697],
+                [15860, 16055, 16243, 16486, 16699, 16939, 17178, 17454, 17718, 18059, 18348]]
+
+        filter_info = {'anchors': inds, 'window': window, 'poly_order': poly_order}
+        cleaned_data = clean_data(dion7_data.data, filter_info)
+
+        # plt.figure()
+        # plt.plot(dion7_data.data['e_true'], dion7_data.data['Sigma_true'])
+        # plt.plot(cleaned_data['e_true'], cleaned_data['Sigma_true'])
+        # plt.show()
+
+        self.assertEqual(len(cleaned_data['e_true']), 2847)
