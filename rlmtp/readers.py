@@ -91,15 +91,24 @@ class ExcelDion7Reader(Reader):
     def deduce_microseconds(self, system_time):
         """ Returns a Series of Timestamps with the deduced microseconds from available values. """
         # Find the first entry with microseconds not equal to zero
+        set_micro_index = False
         for i, st in enumerate(system_time):
             t_micro_1 = st.microsecond
             if t_micro_1 != 0:
+                set_micro_index = True
                 st2 = system_time[i + 1]
                 t_micro_2 = st2.microsecond
                 dt = t_micro_2 - t_micro_1  # the timestep is assumed to be constant
                 first_micro_index = i
                 first_micro_time = st
                 break
+
+        # Exit with original times if no microseconds
+        if not set_micro_index:
+            warnings.warn('No microseconds in the data, time syncing will not be as accurate.')
+            return system_time.copy()
+
+        # Make sure all entries have microseconds
         system_time_micro = system_time.copy()
         # Adjust all the times before the first time with microseconds
         for i in range(first_micro_index):
@@ -158,7 +167,7 @@ def read_filter_info(file):
     anchors = []
     with open(file, 'r') as f:
         for i, line in enumerate(f):
-            l_split = line.split(',')
+            l_split = line.strip().split(',')
             if i % line_mod == 0:
                 # Even numbered line, so contains window lengths and poly orders
                 windows.append(int(l_split[0]))
