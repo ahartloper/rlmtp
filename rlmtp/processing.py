@@ -121,6 +121,7 @@ def process_specimen_data(input_dir, output_dir):
     string, see the get_pre_name function.
     - If the temperature data exists, it is synced with the Dion7 data.
     """
+    print('Processing data in {0}'.format(input_dir))
     # Check to see if the correct files exist, and load the data
     all_data = load_data_files(input_dir)
     dion7_data = all_data['Dion7']
@@ -169,4 +170,6 @@ def get_pre_name(input_dir):
         else:
             # Prepend with the second last and last directories
             pre_name = '_'.join(split_path[-2:])
+            # Replace all spaces with underscores
+            pre_name = pre_name.replace(' ', '_')
     return pre_name

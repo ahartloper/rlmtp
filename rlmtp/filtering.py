@@ -17,11 +17,13 @@ def reduce_data(x, y, t, anchors, window, poly_order=1):
     :param int poly_order: Polynomial order for the fitting for the y data.
     :return list: (np.array) The reduced data in the form [x_new, y_new, t_new].
 
-    - The first data point is defined by anchors[0], and the last by anchors[-1].
-    - Within each anchor interval data is sampled at points defined by the window length following
-        x_k = x[anchors[i] + n * window], n = 0, 1, 2, ...
-    where n resets at each new anchor interval.
-    - One point is added at the mid point of each window based on a best-fit polynomial of order = poly_order.
+    Notes:
+        - The first data point is defined by anchors[0], and the last by anchors[-1].
+        - Within each anchor interval data is sampled at points defined by the window length following
+            x_k = x[anchors[i] + n * window], n = 0, 1, 2, ...
+        where n resets at each new anchor interval.
+        - One point is added at the mid point of each window based on a best-fit polynomial of order = poly_order.
+        - If poly_order = 0 then NO point is added at the mid-point (just selects the points).
     """
     # Check for missing entries in the data and check that the anchor points don't go past the end of x or y
     x2 = x[np.logical_not(np.isnan(x))]
@@ -50,13 +52,19 @@ def reduce_data(x, y, t, anchors, window, poly_order=1):
         x_next = x[i_next]
         x_mid = 0.5 * (x_current + x_next)
         # Fit the mid point based on the specified polynomial order
-        z = np.polyfit(x[i_current:i_next], y[i_current:i_next], poly_order)
-        p = np.poly1d(z)
-        y_mid = p(x_mid)
-        x_new = np.append(x_new, [x_current, x_mid])
-        y_new = np.append(y_new, [y[i_current], y_mid])
-        t_mid = 0.5 * (t[i_current] + t[i_next])  # assumes that the rate is constant between the two points
-        t_new = np.append(t_new, [t[i_current], t_mid])
+        # Don't add a mid point if polyorder = 0
+        if poly_order != 0:
+            z = np.polyfit(x[i_current:i_next], y[i_current:i_next], poly_order)
+            p = np.poly1d(z)
+            y_mid = p(x_mid)
+            x_new = np.append(x_new, [x_current, x_mid])
+            y_new = np.append(y_new, [y[i_current], y_mid])
+            t_mid = 0.5 * (t[i_current] + t[i_next])  # assumes that the rate is constant between the two points
+            t_new = np.append(t_new, [t[i_current], t_mid])
+        else:
+            x_new = np.append(x_new, [x_current])
+            y_new = np.append(y_new, [y[i_current]])
+            t_new = np.append(t_new, [t[i_current]])
         # Update the indices
         i_current = i_next
         i_next = i_current + window
