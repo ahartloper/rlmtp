@@ -168,7 +168,10 @@ def read_filter_info(file):
     with open(file, 'r') as f:
         for i, line in enumerate(f):
             l_split = line.strip().split(',')
-            if i % line_mod == 0:
+            if l_split[0] == '':
+                # Skip empty lines
+                pass
+            elif i % line_mod == 0:
                 # Even numbered line, so contains window lengths and poly orders
                 windows.append(int(l_split[0]))
                 try:
