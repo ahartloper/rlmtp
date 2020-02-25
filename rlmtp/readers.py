@@ -194,11 +194,13 @@ class DescriptionReader:
     is parsed as pid_force_0: p, pid_force_1: i, pid_force_2: d.
     - The read method returns a pd.DataFrame object.
     - Each value is stored in the pd.DataFrame as one of the following types: datetime.date, float, str.
+    - Lines starting with "#" will not be read
     """
 
     def __init__(self):
         """ Constructor, the allowable keywords are set here. """
         # Key = allowable keywords in the specimen description file, value = title of each keyword
+        # If multiple values are expected for an entry, then place the value in a list
         self.accepted_inputs = collections.OrderedDict([
             ('steel_grade', 'Grade'),
             ('add_spec', 'Spec.'),
@@ -232,15 +234,16 @@ class DescriptionReader:
         allowable_keywords = self.accepted_inputs.keys()
         with open(file, 'r') as f:
             for line in f:
-                if line.strip() is not '':
-                    line_separated = line.split(',')
+                if (line.strip() is not '') and (line.strip()[0] is not '#'):
+                    # Allow commas (and semi-colons for excel users)
+                    line_separated = line.replace(';', ',').split(',')
                     line_separated = [l.strip() for l in line_separated]  # remove whitespaces at the start and end
                     column = line_separated.pop(0)
                     data = line_separated
                     # Add the data if it's recognized
                     if column in allowable_keywords:
                         data_sanitized = self.sanitize_inputs(data)
-                        if len(data) == 1:
+                        if len(data_sanitized) == 1:
                             self.handle_single_data(description, column, data_sanitized)
                         else:
                             self.handle_multi_data(description, column, data_sanitized)
@@ -266,15 +269,16 @@ class DescriptionReader:
         """ Ensure that the description entries are in the proper format. """
         try:
             # First try converting to a date
-            dt = [datetime.datetime.strptime(d, '%d-%m-%Y') for d in data]
+            # Ignore blank data entries
+            dt = [datetime.datetime.strptime(d, '%d-%m-%Y') for d in data if d != '']
             data_san = [datetime.date(day=dti.day, month=dti.month, year=dti.year) for dti in dt]
         except ValueError:
             try:
                 # Then try converting to a float
-                data_san = [float(d) for d in data]
+                data_san = [float(d) for d in data if d != '']
             except ValueError:
-                # OK keep the string
-                data_san = data
+                # OK keep the string, but not emtpy values
+                data_san = [d for d in data if d != '']
         return data_san
 
     def get_column_order(self):

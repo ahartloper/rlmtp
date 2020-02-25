@@ -38,3 +38,18 @@ class TestDescription_reader(TestCase):
         self.assertTrue(len(x) == count)
         self.assertTrue(x[0] == 'steel_grade')
         self.assertTrue(x[-1] == 'pid_extenso_2')
+
+    def test_with_semi_colon(self):
+        file = '../specimen_description_semi-colon.csv'
+        reader = DescriptionReader()
+        result = reader.read(file)
+
+        self.assertTrue(result['steel_grade'][0] == '[material grade eg S355]')
+
+    def test_with_extra_comma(self):
+        file = '../specimen_description_extra-commas.csv'
+        reader = DescriptionReader()
+        result = reader.read(file)
+
+        self.assertTrue(result['steel_grade'][0] == '[material grade eg S355]')
+        self.assertTrue(len(result['steel_grade']) == 1)
