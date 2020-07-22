@@ -139,7 +139,8 @@ def process_specimen_data(input_dir, output_dir):
     if filter_info is not None:
         print('Filtering the data...')
         final_data = clean_data(final_data, filter_info)
-
+    # Rename the time column
+    final_data = final_data.rename(columns={'C_1_Temps[s]': 'Time[s]'})
     # Output the required files
     pre_name = get_pre_name(input_dir)
     dir_maker(output_dir)
