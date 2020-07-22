@@ -27,3 +27,12 @@ class TestRead_filter_info(TestCase):
                                                    15535, 15697],
                                                   [15860, 16055, 16243, 16486, 16699, 16939, 17178, 17454,
                                                    17718, 18059, 18348]])
+
+    def test_read_filter_info_with_blanks(self):
+        filter_file = '../filter_info_with_blank.csv'
+        filter_info = read_filter_info(filter_file)
+
+        self.assertEqual(filter_info['window'][0], 100)
+        self.assertEqual(filter_info['poly_order'][0], 1)
+        self.assertEqual(filter_info['anchors'], [[0, 258, 320, 363, 2296, 3441, 4183, 7219, 8566, 10076, 11773, 13632,
+                                                   15665, 17865]])

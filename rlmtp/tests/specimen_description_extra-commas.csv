@@ -3,7 +3,7 @@
 # steel_grade, S355
 # Delete any lines that are not used
 
-steel_grade, [material grade eg S355]
+steel_grade, [material grade eg S355],,,,,,
 add_spec, [added specifications eg J2+N]
 specimen_id, [specimen identifier eg S1]
 specimen_source, [material source eg HEB500 flange]
@@ -17,7 +17,6 @@ load_protocol, [name of the load protocol eg LP1]
 pid_force, [p], [i], [d]
 pid_disp, [p], [i], [d]
 pid_extenso, [p], [i], [d]
-# The data must be in the format below i.e., with dashes and day-month-year
 date, [dd-mm-yyyy]
 personnel, [name]
 location, [location eg EPFL GIS]

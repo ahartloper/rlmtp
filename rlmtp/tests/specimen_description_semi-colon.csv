@@ -3,12 +3,12 @@
 # steel_grade, S355
 # Delete any lines that are not used
 
-steel_grade, [material grade eg S355]
-add_spec, [added specifications eg J2+N]
-specimen_id, [specimen identifier eg S1]
+steel_grade; [material grade eg S355]
+add_spec; [added specifications eg J2+N]
+specimen_id; [specimen identifier eg S1]
 specimen_source, [material source eg HEB500 flange]
-outer_dia_n, [nominal outer diameter eg M20]
-gage_length_n, [nominal gage length eg 8.0]
+outer_dia_n; [nominal outer diameter eg M20]
+gage_length_n; [nominal gage length eg 8.0]
 # reduced diameter measurements (make 3 measurements)
 reduced_dia_m, [d1 eg 4.01], [d2 eg 3.99], [d3 eg 4.00]
 
@@ -17,7 +17,6 @@ load_protocol, [name of the load protocol eg LP1]
 pid_force, [p], [i], [d]
 pid_disp, [p], [i], [d]
 pid_extenso, [p], [i], [d]
-# The data must be in the format below i.e., with dashes and day-month-year
 date, [dd-mm-yyyy]
 personnel, [name]
 location, [location eg EPFL GIS]

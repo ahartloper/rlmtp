@@ -5,3 +5,4 @@ from .create_latex_photos import latex_photo_compiler
 from .processing import process_specimen_data
 from .construct_database import write_description_database_csv
 from .filtering import clean_data
+from .plotting import stress_strain_plotter, temp_time_plotter, temp_strain_plotter
