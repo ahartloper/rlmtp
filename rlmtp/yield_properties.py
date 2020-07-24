@@ -1,5 +1,5 @@
 """@package yield_properties
-Functions to obtain the measured elastic modulus and yield stress.
+Functions to obtain the measured elastic modulus and yield stress.q
 """
 
 from __future__ import division

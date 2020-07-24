@@ -97,7 +97,9 @@ def generate_output(data, output_dir, pre_name):
     # Write the .csv file
     file_name = pre_name + '_' + 'processed_data.csv'
     out_path = os.path.join(output_dir, file_name)
-    data.to_csv(out_path, index=False)
+    # Rename the time column
+    data2 = data.rename(columns={'C_1_Temps[s]': 'Time[s]'})
+    data2.to_csv(out_path, index=False)
 
     # Write the figures
     stress_strain_plotter(data, output_dir, pre_name)
@@ -139,7 +141,6 @@ def process_specimen_data(input_dir, output_dir):
     if filter_info is not None:
         print('Filtering the data...')
         final_data = clean_data(final_data, filter_info)
-
     # Output the required files
     pre_name = get_pre_name(input_dir)
     dir_maker(output_dir)
