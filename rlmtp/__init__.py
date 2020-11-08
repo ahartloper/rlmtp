@@ -6,3 +6,5 @@ from .processing import process_specimen_data, dir_maker
 from .construct_database import write_description_database_csv
 from .filtering import clean_data
 from .plotting import stress_strain_plotter, temp_time_plotter, temp_strain_plotter, strain_rate_plotter
+from .plotting import yield_properties_plotter
+from .yield_properties import yield_properties, compute_modulus

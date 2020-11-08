@@ -108,11 +108,12 @@ def generate_output(data, output_dir, pre_name):
     return
 
 
-def process_specimen_data(input_dir, output_dir):
+def process_specimen_data(input_dir, output_dir, ignore_filter=False):
     """ Generates the final .csv output and plots the relevant data.
 
     :param str input_dir: Specimen directory containing the data.
     :param str output_dir: Directory where the output will be saved.
+    :param bool ignore_filter: If True, then don't use filter files even if they exist. False is default behavior.
     :return pd.DataFrame: Contains all the processed, filtered data collected by the function.
 
     - For the definition of the specimen directory see rlmtp/protocols/readme.md
@@ -138,7 +139,7 @@ def process_specimen_data(input_dir, output_dir):
         final_data = dion7_data.data
     # Do the filtering
     filter_info = all_data['filtering']
-    if filter_info is not None:
+    if filter_info is not None and not ignore_filter:
         print('Filtering the data...')
         final_data = clean_data(final_data, filter_info)
     # Output the required files

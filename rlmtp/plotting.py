@@ -6,6 +6,7 @@ import os
 import numpy as np
 import warnings
 from .mpl_import import *
+from .yield_properties import yield_properties
 
 
 def safe_savefig(path):
@@ -81,3 +82,29 @@ def temp_time_plotter(data, output_dir, pre_name):
     safe_savefig(out_path)
     plt.close()
     return
+
+
+def yield_properties_plotter(data, output_dir, pre_name, f_yn=345.):
+    """ Plots the data and the 0.2% offset yield stress point.
+
+    :param pd.DataFrame data: Contains the stress-strain data.
+    :param str output_dir: Directory to save the figure.
+    :param str pre_name: Name prepended to the generic plot name.
+    :param float f_yn: Nominal yield stress.
+    :return:
+    """
+    e_and_fy = yield_properties(data, f_yn)
+    offset = 0.002
+    projection = 0.005
+    x = np.linspace(offset, projection)
+    fy_offset_line = e_and_fy[0] * x - offset * e_and_fy[0]
+    ey = e_and_fy[1] / e_and_fy[0] + offset
+
+    plt.figure()
+    plt.plot(data['e_true'], data['Sigma_true'], '0.7')
+    plt.plot(x, fy_offset_line, 'k')
+    plt.plot([ey], [e_and_fy[1]], 'ko')
+
+    file_name = pre_name + '_' + 'yield_props_plot.pdf'
+    out_path = os.path.join(output_dir, file_name)
+    plt.savefig(out_path)
