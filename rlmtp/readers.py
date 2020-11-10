@@ -8,6 +8,34 @@ import warnings
 import collections
 from rlmtp.timed_data import TimedData
 
+ACCEPTED_READER_INPUTS = collections.OrderedDict([
+    # Key = allowable keywords in the specimen description file, value = title of each keyword
+    # If multiple values are expected for an entry, then place the value in a list
+    # If multiple values are expected then the entries have to be registered in self.multiple_inputs below as well
+    ('steel_grade', 'Grade'),
+    ('add_spec', 'Spec.'),
+    ('specimen_source', 'Source'),
+    ('specimen_id', 'ID'),
+    ('load_protocol', 'LP'),
+    ('outer_dia_n', 'Size'),
+    ('gage_length_n', 'Gage Length [mm]'),
+    ('reduced_dia_m', ['Avg. Reduced Dia. [mm]']),
+    ('fractured_dia_top_m', ['Avg. Fractured Dia. Top [mm]']),
+    ('fractured_dia_bot_m', ['Avg. Fractured Dia. Bot [mm]']),
+    ('fy_n', 'fy_n [MPa]'),
+    ('fu_n', 'fu_n [MPa]'),
+    ('ambient_temp', 'T_a [deg C]'),
+    ('date', 'Date'),
+    ('personnel', 'Investigator'),
+    ('location', 'Location'),
+    ('setup', 'Machine'),
+    ('pid_force', ['PID Force K_p', 'PID Force T_i', 'PID Force T_d']),
+    ('pid_disp', ['PID Disp. K_p', 'PID Disp. T_i', 'PID Disp. T_d']),
+    ('pid_extenso', ['PID Extenso. K_p', 'PID Extenso. T_i', 'PID Extenso. T_d']),
+])
+READER_MULTI_INPUTS = ['pid_force', 'pid_disp', 'pid_extenso', 'reduced_dia_m', 'fractured_dia_bot_m',
+                       'fractured_dia_top_m']
+
 
 class Reader:
     """ Base class for the readers for various numerical timed data types. """
@@ -199,29 +227,8 @@ class DescriptionReader:
 
     def __init__(self):
         """ Constructor, the allowable keywords are set here. """
-        # Key = allowable keywords in the specimen description file, value = title of each keyword
-        # If multiple values are expected for an entry, then place the value in a list
-        self.accepted_inputs = collections.OrderedDict([
-            ('steel_grade', 'Grade'),
-            ('add_spec', 'Spec.'),
-            ('specimen_source', 'Source'),
-            ('specimen_id', 'ID'),
-            ('load_protocol', 'LP'),
-            ('outer_dia_n', 'Size'),
-            ('gage_length_n', 'Gage Length [mm]'),
-            ('reduced_dia_m', ['Avg. Reduced Dia. [mm]']),
-            ('fy_n', 'fy_n [MPa]'),
-            ('fu_n', 'fu_n [MPa]'),
-            ('ambient_temp', 'T_a [deg C]'),
-            ('date', 'Date'),
-            ('personnel', 'Investigator'),
-            ('location', 'Location'),
-            ('setup', 'Machine'),
-            ('pid_force', ['PID Force K_p', 'PID Force T_i', 'PID Force T_d']),
-            ('pid_disp', ['PID Disp. K_p', 'PID Disp. T_i', 'PID Disp. T_d']),
-            ('pid_extenso', ['PID Extenso. K_p', 'PID Extenso. T_i', 'PID Extenso. T_d']),
-        ])
-        self.multiple_inputs = ['pid_force', 'pid_disp', 'pid_extenso', 'reduced_dia_m']
+        self.accepted_inputs = ACCEPTED_READER_INPUTS
+        self.multiple_inputs = READER_MULTI_INPUTS
         return
 
     def read(self, file):

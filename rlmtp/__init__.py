@@ -9,3 +9,4 @@ from .plotting import stress_strain_plotter, temp_time_plotter, temp_strain_plot
 from .plotting import yield_properties_plotter
 from .yield_properties import yield_properties, compute_modulus
 from .auto_filter_file import generate_filter_file
+from .fracture_strain import compute_fracture_strain, process_fracture_strains
