@@ -127,6 +127,22 @@ Additional data sets filtered using window\_length\_j and polyfit\_order\_j are 
 Note that only the data bounded by anochor\_start\_1 and anchor\_end\_j (or anchor\_end\_1 if only one set of anchor
 points is specified) will be included in the processed output.
 
+### Filter file auto generation
+
+A function exists in RLMTP to auto-generate filter files.
+It can be accessed through rlmtp.generate_filter_file(), see the function for more information.
+
+### Points of interest
+A 'points_of_interest.txt' file can be added to the specimen directory.
+This file is used during the filter file auto-generation.
+The file can contain two items:
+- removal_range,\<start\>:\<finish\>
+- buckle_ind,\<index\>
+The removal range specifies that all points with indexes between the start and finish will be removed.
+This is useful to remove a data feature that you do not want to calibrate a model to.
+The buckle index specifies that this is to be the index of the last data point in the cleaned data, as the specimen has
+buckled past this point.
+
 ## Specimen Description Protocol
 
 This protocol is for the file [specimen_directory]/specimen_description.csv.
