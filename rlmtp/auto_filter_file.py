@@ -5,12 +5,14 @@ from .find_peaks import find_peaks, find_peaks2
 from .yield_properties import yield_properties
 
 
-def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None):
+def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None, wl1=50, wl2=5):
     """ Writes an automatically generated filter file for data.
     :param pd.DataFrame d: Contains stress-strain data.
     :param str out_path: Path to write the output filter file.
     :param list remove_ranges: [int, int] Contains indices of ranges of data to remove.
     :param int last_ind: If not None, then only consider data up to this index.
+    :param int wl1: Window length for strain range prior to 2% amplitude.
+    :param int wl2: Window length for strain range after 2% amplitude.
     """
     # Get the stress peaks
     i = find_peaks(d['Sigma_true'])
@@ -63,9 +65,6 @@ def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None):
     i_final = sorted(list(set(i_final)))
 
     # Write the filter file
-    # Window lengths for the two strain ranges
-    wl1 = 50
-    wl2 = 5
     # Doesn't use any interpolation between points (interp_order = 0)
     if len(remove_ranges) == 0:
         # When don't have removal ranges
