@@ -12,15 +12,16 @@ def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None):
     :param list remove_ranges: [int, int] Contains indices of ranges of data to remove.
     :param int last_ind: If not None, then only consider data up to this index.
     """
-    # Get the moment peaks
+    # Get the stress peaks
     i = find_peaks(d['Sigma_true'])
     # Get the strain peak of the first cycle
     i2 = find_peaks2(d['e_true'], d['Sigma_true'])
     i2 = i2[0]
-    # Get the upper yield point
+    # Get the upper yield point -> maximum stress up-to 0.2% offset point
     em, fym = yield_properties(d)
-    i3 = abs(d['Sigma_true'] - fym).idxmin()
-    ipeak = d['Sigma_true'].loc[:i3].idxmax()
+    fy_limit = 0.2 / 100. + fym / em
+    i_plateau = d[d['e_true'].gt(fy_limit)].index[0]
+    i_fyupper = d['Sigma_true'].loc[:i_plateau].idxmax()
     # Locate the points crossing 2% strain amplitude
     # Use a bit extra past the point
     amp_limit = 0.02 * 1.025
@@ -31,14 +32,17 @@ def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None):
     if len(iamp) > 0:
         passes_2prct = True
         iamp = iamp.index[0]
-        i_final = [0] + i + [i2, int(i3), int(iamp)]
+        i_final = [0] + i + [i2, int(i_fyupper), int(iamp)]
     else:
         passes_2prct = False
-        i_final = [0] + i + [i2, int(i3)]
-    # Remove data past 12.5%
-    if len(ilast) > 0:
-        i_ult = ilast.index[0]
-        if last_ind is not None:
+        i_final = [0] + i + [i2, int(i_fyupper)]
+    # Remove data past 12.5% and remove after the last specified index
+    if len(ilast) > 0 or last_ind is not None:
+        if len(ilast) > 0:
+            i_ult = ilast.index[0]
+        else:
+            i_ult = last_ind
+        if last_ind is not None and len(ilast) > 0:
             # Use the specified last index if it is less than the auto determined one
             if last_ind < i_ult:
                 i_ult = last_ind
@@ -60,8 +64,8 @@ def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None):
 
     # Write the filter file
     # Window lengths for the two strain ranges
-    wl1 = 25
-    wl2 = 3
+    wl1 = 50
+    wl2 = 5
     # Doesn't use any interpolation between points (interp_order = 0)
     if len(remove_ranges) == 0:
         # When don't have removal ranges
@@ -93,7 +97,16 @@ def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None):
             elif just_used_rr:
                 # End index
                 just_used_rr = False
-                out_str += '{0}\n{1},0\n'.format(i, wl1)
+                if passes_2prct:
+                    if i_final[count + 1] == int(iamp):
+                        # If next point is the amplitude limit just add the last point of the remove range
+                        out_str += '{0}'.format(i)
+                    else:
+                        # Else, add the last point of the remove range and start a new series at window length 1
+                        out_str += '{0}\n{1},0\n'.format(i, wl1)
+                else:
+                    # Don't need to worry about the amplitude limit if don't pass 2%
+                    out_str += '{0}\n{1},0\n'.format(i, wl1)
             else:
                 # Continue as normal
                 ind_list.append(i)
