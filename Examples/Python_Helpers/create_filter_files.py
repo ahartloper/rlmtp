@@ -3,11 +3,20 @@ This file automatically creates filter files if none exist.
 """
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
 import rlmtp
 
 
 campaign_dirs = [
-    # ADD THE DIRECTORIES HERE
+    # 'S355J2_Plates/WP3_PLT15_CRM12',
+    # 'S355J2_HEM320/WP3_HEM320_D_CRM20',
+    # 'S355J2_HEM320/WP3_HEM320_C_CRM20',
+    # 'S355J2_IPE360/WP3_IPE360_D_CRM8',
+    # 'S355J2_IPE360/WP3_IPE360_C_CRM8',
+    # 'S235275_Plates/S235275_Plate15',
+    # 'S690/S690_11mm',
+    # 'S690/S690_19mm',
+    'S355J2_Plates/S355J2_Base_metal_15mm',
 ]
 campaign_dirs = ['../RESSLab_Material_DB/' + d for d in campaign_dirs]
 
@@ -39,10 +48,16 @@ for camdir in campaign_dirs:
                     remove_range = []
                 # Set the window lengths
                 if 'LP9' in specd:
+                    pre_yield_wl = None
                     pre_2_prct_wl = 50
                     post_2_prct_wl = 3
+                elif 'LP4' in specd or 'LP5' in specd:
+                    pre_yield_wl = 30
+                    pre_2_prct_wl = 80
+                    post_2_prct_wl = 5
                 else:
+                    pre_yield_wl = None
                     pre_2_prct_wl = 50
                     post_2_prct_wl = 5
                 rlmtp.generate_filter_file(d, os.path.join(specd, 'filter_file_auto.csv'), remove_range, final_ind,
-                                           wl1=pre_2_prct_wl, wl2=post_2_prct_wl)
+                                           wl1=pre_2_prct_wl, wl2=post_2_prct_wl, wly=pre_yield_wl)

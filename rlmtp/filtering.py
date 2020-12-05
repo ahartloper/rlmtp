@@ -28,8 +28,10 @@ def reduce_data(x, y, t, anchors, window, poly_order=1):
     # Check for missing entries in the data and check that the anchor points don't go past the end of x or y
     x2 = x[np.logical_not(np.isnan(x))]
     y2 = y[np.logical_not(np.isnan(y))]
-    if len(x2) != len(y2) or max(anchors) > len(x2) or max(anchors) > len(y2):
-        raise Exception('Bad stress or strain vector: likely missing entries in your stress-strain data.')
+    if len(x2) != len(y2):
+        raise ValueError('Bad stress or strain vector: likely missing entries in your stress-strain data.')
+    if max(anchors) > len(x2):
+        raise ValueError('Max anchor point exceeds the length of data, check your filter file.')
 
     x_new = np.array([])
     y_new = np.array([])

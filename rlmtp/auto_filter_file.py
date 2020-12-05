@@ -5,7 +5,7 @@ from .find_peaks import find_peaks, find_peaks2
 from .yield_properties import yield_properties
 
 
-def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None, wl1=50, wl2=5):
+def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None, wl1=50, wl2=5, wly=None):
     """ Writes an automatically generated filter file for data.
     :param pd.DataFrame d: Contains stress-strain data.
     :param str out_path: Path to write the output filter file.
@@ -13,6 +13,11 @@ def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None, wl1=50, w
     :param int last_ind: If not None, then only consider data up to this index.
     :param int wl1: Window length for strain range prior to 2% amplitude.
     :param int wl2: Window length for strain range after 2% amplitude.
+    :param int wly: Optional, Window length for the strain range up to the yield stress.
+
+    Notes:
+    ======
+        - The parameter wly only has an effect if the strain amplitude is less than 2% (e.g., LP4 and LP5)
     """
     # Get the stress peaks
     i = find_peaks(d['Sigma_true'])
@@ -23,7 +28,7 @@ def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None, wl1=50, w
     em, fym = yield_properties(d)
     fy_limit = 0.2 / 100. + fym / em
     i_plateau = d[d['e_true'].gt(fy_limit)].index[0]
-    i_fyupper = d['Sigma_true'].loc[:i_plateau].idxmax()
+    i_fyupper = int(d['Sigma_true'].loc[:i_plateau].idxmax())
     # Locate the points crossing 2% strain amplitude
     # Use a bit extra past the point
     amp_limit = 0.02 * 1.025
@@ -34,10 +39,10 @@ def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None, wl1=50, w
     if len(iamp) > 0:
         passes_2prct = True
         iamp = iamp.index[0]
-        i_final = [0] + i + [i2, int(i_fyupper), int(iamp)]
+        i_final = [0] + i + [i2, i_fyupper, int(iamp)]
     else:
         passes_2prct = False
-        i_final = [0] + i + [i2, int(i_fyupper)]
+        i_final = [0] + i + [i2, i_fyupper]
     # Remove data past 12.5% and remove after the last specified index
     if len(ilast) > 0 or last_ind is not None:
         if len(ilast) > 0:
@@ -73,7 +78,9 @@ def generate_filter_file(d, out_path, remove_ranges=[], last_ind=None, wl1=50, w
             out_str = '{0},0\n'.format(wl1) + ','.join([str(i) for i in i_final[:j]])
             out_str += '\n{0},0\n'.format(wl2) + ','.join([str(i) for i in i_final[j:]]) + '\n'
         else:
-            out_str = '{0},0\n'.format(wl1) + ','.join([str(i) for i in i_final])
+            j_ify = i_final.index(i_fyupper) + 1
+            out_str = '{0},0\n'.format(wly) + ','.join([str(i) for i in i_final[:j_ify]])
+            out_str += '\n{0},0\n'.format(wl1) + ','.join([str(i) for i in i_final[j_ify:]])
     else:
         # Assume that all remove ranges are before the switch to higher strain rate
         # Assume only one removal range
