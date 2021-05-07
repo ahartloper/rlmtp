@@ -2,38 +2,22 @@
 This file computes the average measured yield stress for each material.
 
 Run this file from the command line:
->>> python compute_yield_properties.py
+>>> python generate_yield_properties.py
+
+Notes:
+    - All the clean data needs to be generated first.
+    - The link between the database entry and the file can be found through the
+        'db_tag_out_dir_map.csv' file.
 """
 import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import rlmtp
+from campaign_directories import input_root, campaign_dirs_rlmtp, campaign_dirs_nonrlmtp
 
-# Use the data that has already been filtered/reduced
-input_root = './Clean_Data'
-data_dirs = [
-    'S355J2_HEB500/flange',
-    'S355J2_HEB500/web',
-    'S355J2_HEM300/flange',
-    'S355J2_IPE300/flange',
-    'S355J2_IPE300/web',
-    'S355J2_IPE400',
-    'S690QL/Base metal',
-    'S690QL/Heat affected zone',
-    'FE_SMA/FE_SMA_Cyclic-Calib',
-    #
-    'S690QL/25mm',
-    'S460NL/25mm',
-    'S355J2_Plates/S355J2_N_25mm',
-    'S355J2_Plates/S355J2_N_50mm',
-    'HYP400',
-    'BCR295',
-    'BCP325',
-    'A500',
-    'A992_Gr50/A992_W14X82_flange',
-    'A992_Gr50/A992_W14X82_web'
-]
+# Use clean data
+data_dirs = campaign_dirs_rlmtp + campaign_dirs_nonrlmtp
 
 # Set the output directory
 output_root = './Clean_Data/yield_stress'
@@ -67,5 +51,5 @@ for d in data_dirs:
         yield_data.append([data_file, yield_props[0], yield_props[1]])
 
 # Store in a dataframe and save
-df = pd.DataFrame(yield_data, columns=['DataDir', 'E_m', 'fy_m'])
-df.to_csv(os.path.join(output_root, 'yield_stress_data.csv'))
+df = pd.DataFrame(yield_data, columns=['data_file', 'E_m', 'fy_m'])
+df.to_csv(os.path.join(output_root, 'yield_stress_data.csv'), index=False)
