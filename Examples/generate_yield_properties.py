@@ -12,11 +12,11 @@ Notes:
 import os
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import rlmtp
-from campaign_directories import input_root, campaign_dirs_rlmtp, campaign_dirs_nonrlmtp
+from campaign_directories import campaign_dirs_rlmtp, campaign_dirs_nonrlmtp
 
 # Use clean data
+clean_data_root = 'Clean_Data'
 data_dirs = campaign_dirs_rlmtp + campaign_dirs_nonrlmtp
 
 # Set the output directory
@@ -31,8 +31,8 @@ e_mod_min_acceptable = 0.8 * e_mod_nominal
 e_mod_max_acceptable = 1.2 * e_mod_nominal
 yield_data = []
 for d in data_dirs:
-    files = os.listdir(os.path.join(input_root, d))
-    csv_files = [os.path.join(input_root, d, fi) for fi in files if fi[-3:] == 'csv']
+    files = os.listdir(os.path.join(clean_data_root, d))
+    csv_files = [os.path.join(clean_data_root, d, fi) for fi in files if fi[-3:] == 'csv']
     for data_file in csv_files:
         data = pd.read_csv(data_file)
         try:
