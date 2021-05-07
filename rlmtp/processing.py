@@ -7,6 +7,7 @@ data. Generally the data is required to be stored according to the protocols out
 
 import os
 import errno
+import pandas as pd
 from rlmtp.readers import import_dion7_data, import_catman_data, read_filter_info
 from rlmtp.sync_temperature import sync_temperature
 from rlmtp.plotting import stress_strain_plotter, temp_time_plotter
@@ -86,6 +87,18 @@ def load_data_files(input_dir):
     return data
 
 
+def processed_file_name(output_dir, pre_name):
+    """ Returns the path for the processed data file.
+
+    :param str output_dir: Directory where files will be saved.
+    :param str pre_name: String prepended to all the output file names.
+    :return str: Path to the file.
+    """
+    file_name = pre_name + '_' + 'processed_data.csv'
+    out_path = os.path.join(output_dir, file_name)
+    return out_path
+
+
 def generate_output(data, output_dir, pre_name):
     """ Creates the output files in the specified directory.
 
@@ -95,8 +108,7 @@ def generate_output(data, output_dir, pre_name):
     :return:
     """
     # Write the .csv file
-    file_name = pre_name + '_' + 'processed_data.csv'
-    out_path = os.path.join(output_dir, file_name)
+    out_path = processed_file_name(output_dir, pre_name)
     # Rename the time column
     data2 = data.rename(columns={'C_1_Temps[s]': 'Time[s]'})
     data2.to_csv(out_path, index=False)
@@ -124,30 +136,39 @@ def process_specimen_data(input_dir, output_dir, ignore_filter=False):
     string, see the get_pre_name function.
     - If the temperature data exists, it is synced with the Dion7 data.
     """
+    # First check if the data already exists at the output location
     print('Processing data in {0}'.format(input_dir))
-    # Check to see if the correct files exist, and load the data
-    all_data = load_data_files(input_dir)
-    dion7_data = all_data['Dion7']
-    if dion7_data is None:
-        raise Exception('Dion7 data does not exist (in the correct format), exiting.')
-    # Add the temperature to the stress/strain data
-    catman_data = all_data['catman']
-    if catman_data is not None:
-        print('Syncing temperature data with Dion7 data...')
-        final_data = sync_temperature(dion7_data, catman_data)
-    else:
-        final_data = dion7_data.data
-    # Do the filtering
-    filter_info = all_data['filtering']
-    if filter_info is not None and not ignore_filter:
-        print('Filtering the data...')
-        final_data = clean_data(final_data, filter_info)
-    # Output the required files
     pre_name = get_pre_name(input_dir)
-    dir_maker(output_dir)
-    print('Generating the output...')
-    generate_output(final_data, output_dir, pre_name)
-    print('Finished processing!')
+    final_file_path = processed_file_name(output_dir, pre_name)
+    if os.path.isfile(final_file_path):
+        # The data already exists, load it so can return "final_data"
+        # and notify the user
+        final_data = pd.read_csv(final_file_path)
+        print('The processed data already exists, skipping processing!')
+    else:
+        # The data does not exist, generate it
+        # Check to see if the correct files exist, and load the data
+        all_data = load_data_files(input_dir)
+        dion7_data = all_data['Dion7']
+        if dion7_data is None:
+            raise Exception('Dion7 data does not exist (in the correct format), exiting.')
+        # Add the temperature to the stress/strain data
+        catman_data = all_data['catman']
+        if catman_data is not None:
+            print('Syncing temperature data with Dion7 data...')
+            final_data = sync_temperature(dion7_data, catman_data)
+        else:
+            final_data = dion7_data.data
+        # Do the filtering
+        filter_info = all_data['filtering']
+        if filter_info is not None and not ignore_filter:
+            print('Filtering the data...')
+            final_data = clean_data(final_data, filter_info)
+        # Output the required files
+        dir_maker(output_dir)
+        print('Generating the output...')
+        generate_output(final_data, output_dir, pre_name)
+        print('Finished processing!')
     return final_data
 
 
