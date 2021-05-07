@@ -1,8 +1,7 @@
 """
 This file generates, sorts, and extracts cleaned stress-strain data from the database.
 
-Additional data that follows the RLMTP storage protocol should be appended to the campaign_dirs_rlmtp list.
-Additional data that does not follow the RLMTP storage protocol should be appended to the campaign_dirs_nonrlmtp list.
+The lists in the 'campaign_directories.py' file specify the data.
 
 Run this file from the command line:
 >>> python generate_all_clean_data.py
@@ -53,7 +52,7 @@ for campaign in campaign_dirs_rlmtp:
             if db_tag is not None:
                 rlmtp.process_specimen_data(p, output_dir, ignore_filter=ignore_filter)
                 pre_name = rlmtp.processing.get_pre_name(p)
-                output_file = pre_name + '_' + 'processed_data.csv'
+                output_file = rlmtp.processing.processed_file_name(output_dir, pre_name)
                 # Add the DB tag to the map
                 db_tag_to_clean_file[db_tag] = os.path.join(output_dir, output_file)
 
@@ -82,15 +81,21 @@ for campaign in campaign_dirs_nonrlmtp:
             for f in files:
                 data_file = os.path.join(raw_data_dir, f)
                 if is_valid_data(data_file):
-                    copy2(data_file, output_dir)
-                    data = pd.read_csv(data_file)
-                    rlmtp.stress_strain_plotter(data, output_dir, f[:-4])
+                    # If the file doesn't exist, don't copy, don't plot
+                    final_file_path = os.path.join(output_dir, f)
+                    if os.path.isfile(final_file_path):
+                        print('The processed data already exists, skipping processing!')
+                    else:
+                        # Do copy and do plot
+                        copy2(data_file, output_dir)
+                        data = pd.read_csv(data_file)
+                        rlmtp.stress_strain_plotter(data, output_dir, f[:-4])
                     # Add the DB tag to the map
                     p = os.path.join(cdir, lp, s)
                     db_tag_to_clean_file[get_db_tag(p)] = os.path.join(output_dir, f)
                     break
 
-# Write the DB tag to output dir map
+# Write the DB tag to output file map
 tag_to_outdir_file = os.path.join(output_root, 'db_tag_clean_data_map.csv')
 with open(tag_to_outdir_file, 'w') as f:
     for tag, dir_path in db_tag_to_clean_file.items():

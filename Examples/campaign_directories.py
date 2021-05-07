@@ -3,6 +3,9 @@ This file contains all the locations of all the campaign directories.
 
 The contents of this file are used in the various Python scripts.
 Add entries to the lists as necessary so that they are processed by these scripts.
+
+Additional data that follows the RLMTP storage protocol should be inserted into to the campaign_dirs_rlmtp list.
+Additional data that does not follow the RLMTP storage protocol should be inserted into to the campaign_dirs_nonrlmtp list.
 """
 
 # The input_root directory contains the following campaign_dirs
