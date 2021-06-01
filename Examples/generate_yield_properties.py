@@ -7,7 +7,7 @@ Run this file from the command line:
 Notes:
     - All the clean data needs to be generated first.
     - The link between the database entry and the file can be found through the
-        'db_tag_out_dir_map.csv' file.
+        'db_tag_clean_data_map.csv' file.
 """
 import os
 import pandas as pd
