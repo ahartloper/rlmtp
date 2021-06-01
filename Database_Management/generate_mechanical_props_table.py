@@ -4,11 +4,13 @@ This file creates a table with relavent mechanical properties.
 import pandas as pd
 import os
 import numpy as np
+from datetime import datetime
 
 
 def gen_mech_props_tab():
     # User inputs
-    summary_table = 'Database_Summaries/Summarized_Material_DB.csv'
+    date = datetime.today().strftime('%Y-%m-%d')
+    summary_table = 'Database_Summaries/Summarized_Material_DB_' + date + '.csv'
     yield_props_table = 'Clean_Data/yield_stress/yield_stress_data.csv'
     db_tag_map = 'Clean_Data/db_tag_clean_data_map.csv'
 
@@ -45,7 +47,7 @@ def gen_mech_props_tab():
     df_individual['Fracture Strain'] = 2. * np.log(df['Avg. Reduced Dia. [mm]'] / (0.5 * (df[top_dia] + df[bot_dia])))
     # Output the individual specimen table
     df_individual = df_individual.sort_values(by=['Grade', 'Spec.', 'Source', 'LP'])
-    df_individual.to_csv('Database_Summaries/Summarized_Mechanical_Props_Individual.csv')
+    df_individual.to_csv('Database_Summaries/Summarized_Mechanical_Props_Individual_' + date + '.csv')
 
     def coefvar(x):
         """ Returns the coeficient of variation using the sample standard deviation."""
@@ -54,7 +56,7 @@ def gen_mech_props_tab():
     # Output the "by campaign" table
     df_campaign = df[['Grade', 'Spec.', 'Source', fy_col, em_col]].sort_values(by=['Grade', 'Spec.', 'Source'])
     df_campaign = df_campaign.groupby(['Grade', 'Spec.', 'Source']).agg(['size', 'count', 'mean', coefvar])
-    df_campaign.to_csv('Database_Summaries/Summarized_Mechanical_Props_Campaign.csv')
+    df_campaign.to_csv('Database_Summaries/Summarized_Mechanical_Props_Campaign_' + date + '.csv')
 
 
 if __name__ == "__main__":
