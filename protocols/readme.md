@@ -149,10 +149,14 @@ This protocol is for the file [specimen_directory]/specimen_description.csv.
 The specimen_description file is optional, it's purpose is to keep a record the specimen properties, testing personnel,
 testing machine, PID parameters, etc.,.
 
-The format of this file is not line specific, the order of lines below is only recommended.
-The first entry in each line is a specific keyword, and the entries given in brackets are the associated values.
-Only the keywords in the list below are recognized, any other keywords will not be parsed when processing the file.
-Empty lines are allowed, and will be ignored.
+Notes:
+- The format of this file is not line specific, the order of lines below is only recommended.
+- The first entry in each line is a specific keyword, and the entries given in brackets are the associated values.
+- Only the keywords in the list below are recognized, any other keywords will not be parsed when processing the file.
+- Empty lines are allowed, and will be ignored.
+- The file should be comma delimited.
+- Please do not edit the file in Excel (e.g., use Notepad++).
+- Remove the "[]" when entering the values (e.g., `[grade]` should be `S355`, not `[S355]`)
 
 
 File format:
@@ -181,7 +185,7 @@ Where:
 - \[fy\] is the nominal yield stress in megapascals (e.g., 355)
 - \[fu\] is the nominal tensile stress in megapascals (e.g., 490)
 - \[tag\] is an identifier for the specific specimen (e.g., C2)
-- \[source\] is where the steel came from (e.g., HEB500 web, 25 mm plate)
+- \[source\] is where the steel came from (e.g., HEB500 web, 25mm plate)
 - \[M-\] is the nominal outer diameter of the specimen (e.g., M8, M20)
 - \[L\] is the nominal length of the reduced parallel section in millimeters
 - \[d1\], \[d2\], \[d3\] are the measured diameters of the reduced parallel section in millimeters, there must be exactly 3
@@ -195,6 +199,22 @@ there must be exactly three values
 - \[setup\] is the name of the test machine (e.g., Shenck Trebel 250kN)
 - \[temperature\] is the ambient room temperature when the test begins
 - \[LPN\] is the load protocol identification tag (e.g., LP1, LP9, DCY1)
+
+
+### Specimen Source Naming Convention
+
+- If section:
+	- Section name first, followed by a single space
+	- Then "flange", "web", "flat", or "corner"
+	- Example: `HEB500 web`
+	- Example `HSS305X16 flat`
+- If plate:
+	- Thickness in milimeters + "mm", followed by a single space
+	- Then "plate"
+	- Example: `25mm plate`
+- Add additional information after:
+	- Example: `15mm plate heat treated`
+
 
 
 ## Database Management
