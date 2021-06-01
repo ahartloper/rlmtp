@@ -13,17 +13,13 @@ import rlmtp
 from campaign_directories import input_root, campaign_dirs_rlmtp, campaign_dirs_nonrlmtp
 
 
-def gen_clean_data():
-    # Set the output directory
-    output_root = './Clean_Data'
+def gen_clean_data(output_root='./Clean_Data', ignore_filter=False):
+    """ Generates, sorts, and extracts all the cleaned stress-strain data from the database.
+    :param str output_root: Directory to place the processed data.
+    :param bool ignore_filter: If False, then DO include the filtering/reduction, else ignore.
+    """
 
-    # Decide whether to ignore the filtering/reduction
-    # If ignore_filter = False, then DO include the filtering
-    ignore_filter = False
-
-    # Data processing -------------------------------------------------------------
-    # No need to touch anything below this line
-
+    # Data processing
     def get_db_tag(specimen_dir):
         if 'db_tag.txt' in os.listdir(specimen_dir):
             with open(os.path.join(p, 'db_tag.txt'), 'r') as f:

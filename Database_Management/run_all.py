@@ -19,6 +19,9 @@ for f in dir_csv_contents:
 
 # Do the processing and generate new summaries
 gen_db_summary()
+# The filtered/reduced data
 gen_clean_data()
+# The un-reduced data
+gen_clean_data(output_root='./Unreduced_Data', ignore_filter=True)
 gen_yield_props()
 gen_mech_props_tab()
