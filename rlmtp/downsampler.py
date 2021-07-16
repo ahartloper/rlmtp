@@ -5,14 +5,20 @@ from yield_properties import yield_properties
 
 
 def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
-                      n_elastic_region=7, apply_filter=True, sat_tol=0.99):
-    """ Returns the indices of points to keep.
+                      n_elastic_region=7, apply_filter=True, sat_tol=0.99,
+                      f_yn=345.0, use_midpoint_method=False):
+    """ Returns the indices of data to keep.
     :param data pd.DataFrame: Contains the true stress-strain data.
     :param max_dev_tol float: Maximum allowable perpindicular distance between sampled points.
     :param last_ind int: Last index to keep in the data.
     :param removal_ranges list: (list) Each list specifies ranges of indices to remove.
     :param n_elastic_region int: Number of extra points to keep in the initial elastic range.
     :param apply_filter bool: If True, filter the stress data before downsampling.
+    :param sat_tol float: Proportion of maximum stress to consider saturated under constant amplitude loading.
+                          0.0 < sat_tol <= 1.0. Set sat_tol=None to disable cycle cutting.
+    :param f_yn float: Nominal yield stress.
+    :param use_midpoint_method bool: If True, use the mid point method in the max dev downsampling. 
+    :return list: Indices in data to keep.
 
     Notes:
     ======
@@ -29,14 +35,18 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
         peaks have been selected, but before the max deviation downsampler is applied. Therefore,
         the peaks of the stress-strain data are maintained and the result is somewhat robust to
         noise in the stress data.
+        - Cycle cutting with sat_tol takes cycles up to and including when stress > sat_tol*max(stress)
+          and stress < sat_tol*min(stress). This assumes a cyclic hardening behavior and should be
+          disabled for cycling softening by using sat_tol=None.
+        - The mid point method tends to lead to more points and higher error, but is much faster.
     """
     # Obtain the "peaks" in the stress-strain data
-    ind_ss, ind_2prct = stress_strain_peaks(data, last_ind=last_ind)
+    ind_ss, ind_2prct = stress_strain_peaks(data, last_ind=last_ind, f_yn=f_yn)
     print('Last ind: ', ind_ss[-1])
 
     # Only use cycles up to saturation for constant amplitude tests
-    # Constant amplitude if ind_2prct=None many peaks found
-    if ind_2prct is None and len(ind_ss) > 55:
+    # Constant amplitude if ind_2prct=None and many peaks found
+    if ind_2prct is None and len(ind_ss) > 55 and sat_tol is not None:
         ind_ss = keep_upto_saturation(data, ind_ss, sat_tol=sat_tol)
 
     # Run max deviation downsampler
@@ -44,22 +54,11 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
     d = np.array(data[['e_true', 'Sigma_true']])
     if apply_filter:
         d[:, 1] = filter_stress(d, ind_2prct)
-    # Scale the x,y to have unit max length in both axes
-    d[:, 0] = d[:, 0] / (d[:, 0].max() - d[:, 0].min())
-    d[:, 1] = d[:, 1] / (d[:, 1].max() - d[:, 1].min())
-    # Only use the data up to the last index from the stress-strain peaks
-    d = d[0:ind_ss[-1]+1, :]
-    ind_max_dev = max_deviation_downsampler(d, max_dev_tol)
+    ind_downsampler = apply_downsampler(d, ind_ss[-1], max_dev_tol, use_midpoint_method=use_midpoint_method)
 
     # Combine the points, remove any points that lie between the removal ranges
-    ind_final = ind_ss + ind_max_dev
-    for rr in removal_ranges:
-        r_start = rr[0]
-        r_end = rr[1]
-        # Keep the points at the start and end
-        ind_final += [r_start, r_end]
-        # Remove any points between start and end
-        ind_final = [i for i in ind_final if not (r_start < i < r_end)]
+    ind_final = ind_ss + ind_downsampler
+    ind_final = apply_removal_ranges(ind_final, removal_ranges)
     # Remove any duplicates and sort
     ind_final = sorted(list(set(ind_final)))
 
@@ -67,6 +66,34 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
     ind_final += add_to_elastic(d, [ind_final[0], ind_final[1]], n_elastic_region)
     # Sort again and return
     ind_final = sorted(list(set(ind_final)))
+    return ind_final
+
+
+def apply_downsampler(d, last_ind, max_dev_tol, use_midpoint_method=False):
+    """ Returns the indices to keep in d.
+    :param d np.array: x-y data.
+    :param last_ind int: Only considers d[0:last_ind+1].
+    :param max_dev_tol float: Threshold to use in the max deviation downsampler.
+    :return list: Indices to keep.
+    """
+    # Scale the x,y to have unit max length in both axes
+    d[:, 0] = d[:, 0] / (d[:, 0].max() - d[:, 0].min())
+    d[:, 1] = d[:, 1] / (d[:, 1].max() - d[:, 1].min())
+    # Only use the data up to the last index from the stress-strain peaks
+    d = d[0:last_ind+1, :]
+    ind_max_dev = max_deviation_downsampler(d, max_dev_tol, use_midpoint_method)
+    return ind_max_dev
+
+
+def apply_removal_ranges(ind_final, removal_ranges):
+    """ Removes any points contained in any of the removal ranges. """
+    for rr in removal_ranges:
+        r_start = rr[0]
+        r_end = rr[1]
+        # Keep the points at the start and end
+        ind_final += [r_start, r_end]
+        # Remove any points between start and end
+        ind_final = [i for i in ind_final if not (r_start < i < r_end)]
     return ind_final
 
 
@@ -139,7 +166,7 @@ def mid_dist(pos, n0, n1):
     return perp_dist(pos[n0, :], pos[int((n1 + n0)/2), :], pos[n1, :])
 
 
-def max_deviation_downsampler(pos, thresh=0.1):
+def max_deviation_downsampler(pos, thresh=0.1, use_midpoint_method=False):
     """ Downsamples pos by removing points within a perpindicular distance of the last point.
     :param pos np.array: (n, 2) Set of 2-dimensional points.
     :param thresh float: Maximum allowable perpindicular distance between sampled points.
@@ -157,41 +184,57 @@ def max_deviation_downsampler(pos, thresh=0.1):
         - https://kaushikghose.wordpress.com/2017/11/25/adaptively-downsampling-a-curve/
         - https://github.com/kghose/groho/blob/stable/docs/dev/adaptive-display-points.ipynb
     """
+    # Metric to use in the deviation distance
+    if use_midpoint_method:
+        dist_fun = mid_dist
+    else:
+        dist_fun = max_dist
+
     adaptive_ind = [0]
     last_n = 0
     for n in range(1, pos.shape[0]):
-        if max_dist(pos, last_n, n) > thresh:
+        if dist_fun(pos, last_n, n) > thresh:
             adaptive_ind.append(n - 1)
             last_n = n - 1
     return adaptive_ind
 
 
-def stress_strain_peaks(d, last_ind=None):
-    """ Extracted from rlmtp.auto_filter_file.py """
+def stress_strain_peaks(d, last_ind=None, f_yn=345.0):
+    """ Returns the indicies of the initial elastic region and stress-strain peaks.
+    :param d pd.DataFrame: Stress-strain data.
+    :param last_ind int: Only consider the data d[:last_ind+1].
+    :param f_yn float: Nominal yield stress.
+    :return list: [i_final, i_2prct]:
+        - i_final is a list of the indices
+        - i_2prct is an int for the index at which crosses to 2% strain, or None if it doesn't cross
+
+    Notes:
+    ======
+        - Extracted from rlmtp.auto_filter_file.py.
+        - Contains the starting point also.
+    """
     # Get the stress peaks
     i = find_peaks(d['Sigma_true'])
     # Get the strain peak of the first cycle
     i2 = find_peaks2(d['e_true'], d['Sigma_true'])
     i2 = i2[0]
     # Get the upper yield point -> maximum stress up-to 0.2% offset point
-    em, fym = yield_properties(d)
+    em, fym = yield_properties(d, f_yn=f_yn)
     fy_limit = 0.2 / 100. + fym / em
     i_plateau = d[d['e_true'].gt(fy_limit)].index[0]
     i_fyupper = int(d['Sigma_true'].loc[:i_plateau].idxmax())
     # Locate the points crossing 2% strain amplitude
     # Use a bit extra past the point
     amp_limit = 0.02 * 1.025
-    iamp = d[d['e_true'].gt(amp_limit)]
+    i_2prct = d[d['e_true'].gt(amp_limit)]
     # Find the point before 12.5%
     amp_limit = 0.125 / 1.02
     ilast = d[d['e_true'].gt(amp_limit)]
-    if len(iamp) > 0:
-        passes_2prct = True
-        iamp = iamp.index[0]
-        i_final = [0] + i + [i2, i_fyupper, int(iamp)]
+    if len(i_2prct) > 0:
+        i_2prct = i_2prct.index[0]
+        i_final = [0] + i + [i2, i_fyupper, int(i_2prct)]
     else:
-        passes_2prct = False
-        iamp = None
+        i_2prct = None
         i_final = [0] + i + [i2, i_fyupper]
     # Remove data past 12.5% and remove after the last specified index
     if len(ilast) > 0 or last_ind is not None:
@@ -209,7 +252,7 @@ def stress_strain_peaks(d, last_ind=None):
     else:
         # Go until the end of the data
         i_final.append(len(d) - 1)
-    return i_final, iamp
+    return i_final, i_2prct
 
 
 def downsample_error(d, ind):
@@ -237,7 +280,7 @@ def keep_upto_saturation(data, ind_ss, sat_tol, n_cycles_min=10, extra_pts=5):
         else:
             sat_ind = ind_ss[-1]
     # Only keep indicies less than saturation
-    ind_ss = [i for i in ind_ss if i <= sat_ind]
+    ind_ss = sorted([i for i in ind_ss if i <= sat_ind])
     print('Kept {0} cycles to reach saturation.'.format(cycles_to_sat))
     return ind_ss
 
