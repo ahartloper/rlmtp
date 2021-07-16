@@ -17,7 +17,7 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
     :param sat_tol float: Proportion of maximum stress to consider saturated under constant amplitude loading.
                           0.0 < sat_tol <= 1.0. Set sat_tol=None to disable cycle cutting.
     :param f_yn float: Nominal yield stress.
-    :param use_midpoint_method bool: If True, use the mid point method in the max dev downsampling. 
+    :param use_midpoint_method bool: If True, use the mid point method in the max dev downsampling.
     :return list: Indices in data to keep.
 
     Notes:
@@ -163,13 +163,15 @@ def max_dist(pos, n0, n1):
 
 # The mid point method can be used instead of max_dist to be much faster
 def mid_dist(pos, n0, n1):
-    return perp_dist(pos[n0, :], pos[int((n1 + n0)/2), :], pos[n1, :])
+    """ Returns the perpindicular distance at the index approx. halfway between n0 and n1. """
+    return perp_dist(pos[n0, :], pos[int((n1 + n0) / 2), :], pos[n1, :])
 
 
 def max_deviation_downsampler(pos, thresh=0.1, use_midpoint_method=False):
     """ Downsamples pos by removing points within a perpindicular distance of the last point.
     :param pos np.array: (n, 2) Set of 2-dimensional points.
     :param thresh float: Maximum allowable perpindicular distance between sampled points.
+    :param ues_midpoint_method bool: If True, use the midpoint distance instead of max distance.
     :return list: Indices of points to keep.
 
     Notes:
