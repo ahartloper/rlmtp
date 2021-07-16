@@ -10,3 +10,4 @@ from .plotting import yield_properties_plotter
 from .yield_properties import yield_properties, compute_modulus
 from .auto_filter_file import generate_filter_file, read_points_of_interest
 from .fracture_strain import compute_fracture_strain, process_fracture_strains
+from .downsampler import rlmtp_downsampler

@@ -1,7 +1,10 @@
+"""@package downsampler
+Function to downsample stress-strain data.
+"""
 import numpy as np
 from scipy.signal import savgol_filter
-from find_peaks import find_peaks, find_peaks2
-from yield_properties import yield_properties
+from .find_peaks import find_peaks, find_peaks2
+from .yield_properties import yield_properties
 
 
 def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
