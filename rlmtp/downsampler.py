@@ -325,7 +325,7 @@ def read_downsample_props(fpath):
         if p in type_map:
             return type_map[p](x)
         else:
-            raise ValueError('Incorrect entry in the downsample_props.txt file.')
+            raise ValueError('Unrecognized entry "{0}" in the downsample_props.txt file.'.format(p))
 
     with open(fpath, 'r') as f:
         lines = f.readlines()
