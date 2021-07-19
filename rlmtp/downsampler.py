@@ -8,8 +8,8 @@ from .yield_properties import yield_properties
 
 
 def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
-                      n_elastic_region=7, apply_filter=True, sat_tol=0.99,
-                      f_yn=345.0, use_midpoint_method=False):
+                      n_elastic_region=7, apply_filter=True, wl_base_factor=5, wl_2prct_factor=11,
+                      sat_tol=0.99, f_yn=345.0, use_midpoint_method=False):
     """ Returns the indices of data to keep.
     :param data pd.DataFrame: Contains the true stress-strain data.
     :param max_dev_tol float: Maximum allowable perpindicular distance between sampled points.
@@ -17,6 +17,8 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
     :param removal_ranges list: (list) Each list specifies ranges of indices to remove.
     :param n_elastic_region int: Number of extra points to keep in the initial elastic range.
     :param apply_filter bool: If True, filter the stress data before downsampling.
+    :param wl_base_factor int: Windowlength for the stress filter after 2% strain.
+    :param wl_2prct_factor int: Windowlength multiplier for the stress filter before 2% strain.
     :param sat_tol float: Proportion of maximum stress to consider saturated under constant amplitude loading.
                           0.0 < sat_tol <= 1.0. Set sat_tol=None to disable cycle cutting.
     :param f_yn float: Nominal yield stress.
@@ -38,6 +40,7 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
         peaks have been selected, but before the max deviation downsampler is applied. Therefore,
         the peaks of the stress-strain data are maintained and the result is somewhat robust to
         noise in the stress data.
+        - See rlmtp.downsampler.filter_stress for details on the stresss filter.
         - Cycle cutting with sat_tol takes cycles up to and including when stress > sat_tol*max(stress)
           and stress < sat_tol*min(stress). This assumes a cyclic hardening behavior and should be
           disabled for cycling softening by using sat_tol=None.
@@ -56,7 +59,7 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
     # Remove noise in the stress with a moving average filter
     d = np.array(data[['e_true', 'Sigma_true']])
     if apply_filter:
-        d[:, 1] = filter_stress(d, ind_2prct)
+        d[:, 1] = filter_stress(d, ind_2prct, wl_base=wl_base_factor, wl_factor=wl_2prct_factor)
     ind_downsampler = apply_downsampler(d, ind_ss[-1], max_dev_tol, use_midpoint_method=use_midpoint_method)
 
     # Combine the points, remove any points that lie between the removal ranges
@@ -144,6 +147,7 @@ def add_to_elastic(d, elastic_ind, n_elastic_region):
 
 def perp_dist(x, y, z):
     """x, z are endpoints, y is a point on the curve"""
+    small_vall = 1.e-14
     a = y - x
     a2 = np.dot(a, a)
     b = y - z
@@ -151,7 +155,7 @@ def perp_dist(x, y, z):
     c = z - x
     l2 = np.dot(c, c)
     c = l2**0.5
-    return (a2 - ((l2 + a2 - b2) / (2 * c)) ** 2) ** 0.5
+    return (a2 - ((l2 + a2 - b2) / (2 * c + small_vall)) ** 2) ** 0.5
 
 
 def max_dist(pos, n0, n1):
@@ -305,3 +309,36 @@ def find_saturation_index(d, sat_tol=0.99):
     # Take the max of both directions
     i_sat = int(max(i_sat1, i_sat2))
     return i_sat
+
+
+def read_downsample_props(fpath):
+    """ Parses downsampler_props.txt files.
+    :param str fpath: Path to the file.
+    :return dict: Parsed properties.
+    """
+    # To sanitize inputs
+    type_map = {'max_dev_tol': float, 'last_ind': int, 'removal_range': int, 'n_elastic_region': int,
+                'apply_filter': bool, 'wl_base_factor': int, 'wl_2prct_factor': int,
+                'sat_tol': float, 'f_yn': float, 'use_midpoint_method': bool}
+
+    def sani(x, p):
+        if p in type_map:
+            return type_map[p](x)
+        else:
+            raise ValueError('Incorrect entry in the downsample_props.txt file.')
+
+    with open(fpath, 'r') as f:
+        lines = f.readlines()
+    properties = dict()
+    rr = []
+    for l in lines:
+        ls = l.split(',')
+        p = ls[0].strip()
+        if p == 'removal_range':
+            # Put all the remove ranges together
+            ls2 = ls[1].split(':')
+            rr.append([sani(ls2[0], p), sani(ls2[1], p)])
+        else:
+            properties[p] = sani(ls[1].strip(), p)
+        properties['removal_ranges'] = rr
+    return properties
