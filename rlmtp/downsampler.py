@@ -39,8 +39,8 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
         - If apply_filter=True, a moving average filter is applied to the stress after the
         peaks have been selected, but before the max deviation downsampler is applied. Therefore,
         the peaks of the stress-strain data are maintained and the result is somewhat robust to
-        noise in the stress data.
-        - See rlmtp.downsampler.filter_stress for details on the stresss filter.
+        noise in the stress data. See rlmtp.downsampler.filter_stress for details on the stresss filter.
+        - wl_base_factor and wl_2prct_factor are parameters of the stress filter.
         - Cycle cutting with sat_tol takes cycles up to and including when stress > sat_tol*max(stress)
           and stress < sat_tol*min(stress). This assumes a cyclic hardening behavior and should be
           disabled for cycling softening by using sat_tol=None.
