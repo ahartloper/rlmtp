@@ -1,0 +1,133 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{microtype}
+\usepackage{algpseudocode, algorithm}
+
+\title{Downsampling inelastic cyclic stress-strain data with minimal points to preserve curvature}
+\author{A Hartloper}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+    A downsampling algorithm for stress-strain data that uses few points but retains curvature within a pre-defined tolerance is developed in this document.
+\end{abstract}
+
+\section{Introduction}
+
+The raw data (i.e., extensometer displacement, load cell force) in experiments used for material model calibration are typically sampled at 10~Hz in the EPFL test setup.
+As experiments range from around a few minutes (e.g., LP1) to hours (LP5), this results in thousands to hundreds of thousands of data points for each experiment.
+However, the sampled data is often denser than required to reasonably describe the stress-strain behavior of materials under the applied strain rates.
+When it comes to calibrating material models, the time required is proportional to the number of data points.
+Therefore, time can be saved by reducing the number of data points prior to running the calibration while maintaining the fidelity of the data.
+
+Experience has shown that the fidelity of an experiment can be kept with around 10--100 times less points depending on the load protocol.
+Calibrating the UVC model with ten load protocols \emph{without} reducing the number of points is, therefore, expected to take around several weeks to a year.
+A ``good'' method of reducing the number of data points, or \emph{downsampling} the data, is essential to keep the calibration time reasonable (say, on the order of days to a week per material).
+The properties that define a good downsampling method in this context are now defined.
+
+A good downsampler for inelastic, cyclic, stress-strain data of structural steels:
+\begin{enumerate}
+    \item samples enough points in the initial elastic region to obtain a good estimate of the initial elastic modulus,
+    \item samples the upper yield point,
+    \item samples all the maxima and minima in each loading cycle (i.e., the \emph{peaks} of the stress-strain graph),
+    \item samples enough points to retain the fidelity of regions in the stress-strain graph with high curvature,
+    \item samples as few points as possible in regions of low curvature,
+    \item can handle different load protocols,
+    \item can handle noise in the measurements,
+    \item can handle different strain rates,
+    \item has interpretable heuristic parameters,
+    \item is easy to use.
+\end{enumerate}
+An algorithm that combines different techniques to satisfy these desirable properties is developed in this document.
+
+\section{Proposed algorithm}
+
+The proposed algorithm is composed of three parts.
+The first part is to find the peaks in the stress-strain data.
+The second part is to downsample the entire stress-strain history based on the curvature of the stress-strain data.
+The third part is to keep additional points in the initial elastic region.
+The final downsampled data is the unique set combining all three parts.
+
+Mosts of the heavy lifting is done in the second part.
+The first part is essential to overcome \emph{aliasing} in the sampled data.
+The third part is essential to ensure fidelity of the initial elastic region.
+Details are given for each part and a summary of the entire procedure is given afterwards.
+
+
+\subsection{Identifying peaks in the stress-strain graph}
+
+The peaks in the stress-strain graph are identified by the minima or maxima in each cycle.
+Cycles can be fairly reliably identified by the switching of signs in the stress signal.
+Therefore, the peaks are the minima and maxima between each change in sign of the stress signal.
+This method works well if the stress crosses zero in each cycle and there is no substantial noise in the stress signal around zero.
+
+An attempt at identifying upper yield point, if it exists, is made in this first part.
+First, the 0.2~\% offset yield stress is computed using the initial elastic modulus.
+The initial elastic modulus itself is computed using linear regression up to $0.65 f_{y,n}$, where $f_{y,n}$ is the nominal yield stress of the material.
+Then, the upper yield point is selected as the point of maximum stress up to the 0.2~\% offset yield stress.
+If there is no upper yield point (due to the material or imperfections in the specimen), then the maximum will typically be at the 0.2~\% offset yield stress, and this point is sampled instead.
+
+Another important point in stress-strain data tested according to the RESSLab protocols is the first instance 2~\% strain amplitude is crossed.
+This point is important because the strain rate changes by a factor of around 30 at this point.
+Therefore, this point is identified as well.
+The final point of importance is the final point.
+Unless otherwise specified, the final point is selected at 12.5~\% strain due to limitations in the small extensometer used for M8 experiments.
+Any points past the final point are neglected.
+
+To summarize, the sampled points from the first part are:
+\begin{itemize}
+    \item the upper yield point (or 0.2~\% offset yield stress point),
+    \item the point where 2~\% strain amplitude is crossed (not applicable for LPs~4 and~5),
+    \item the peaks in the stress-strain graph, and
+    \item the final strain point (typically 12.5~\% strain).
+\end{itemize}
+
+\subsection{Curvature-based downsampling}
+
+
+
+% \begin{algorithm}
+% 	\caption{Detailed best-fit MPC coupling method using the nodal load method.}
+% 	\label{alg:mostafa-method}
+% 	\begin{algorithmic}[1]
+% 		\State \textbf{inputs:} 
+% 		\begin{itemize}
+% 			\item $\iniconfig\tenso{X}$: The set of continuum nodes in the initial configuration, size $3 \times N$.
+% 			\item $\tenso{U}_c$: The set of continuum nodal displacements, size $3 \times N$.
+% 			\item $N$: The number of continuum nodes.
+% 			\item $d$, $b_f$, $t_f$, $t_w$: The cross section dimensions.
+% 		\end{itemize}
+% 		\State \textbf{outputs:}
+% 		\begin{itemize}
+% 			\item $\tenso{u}_b$, $\tenso{\phi}_b$, $w_b$: The beam-column node DOF values.
+% 			% \item $\matdd{A}_1$: The constraint coefficient matrix for the beam-column node, size $7\times 7$.
+% 			\item $\matdd{A}$: The constraint coefficient matrix for the continuum nodes, size $7\times 3N$.
+% 		\end{itemize}
+% 		\hrulefill
+		
+% 		\State $\iniconfig\bar{\tenso{x}} \gets \mathrm{mean}\left[ \iniconfig\tenso{X} \right]$
+		
+% 		\For{$k \in [1, \ldots, N]$}
+% 			\State Set the active DOF in the continuum node $k$
+% 			\State Assign the $\matdd{A}_{k}$ submatrix from the  nodal forces
+% 		\EndFor
+% \end{algorithmic}
+% \end{algorithm}
+
+\subsection{Overall algorithm}
+
+
+\begin{algorithm}
+	\caption{Overall summary of the proposed downsampling method.}
+	\label{alg:overall-summary}
+	\begin{algorithmic}[1]
+        \State hi
+    \end{algorithmic}
+\end{algorithm}
+
+\end{document}
+
