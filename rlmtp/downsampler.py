@@ -62,7 +62,6 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
     """
     # Obtain the "peaks" in the stress-strain data
     ind_ss, ind_2prct = stress_strain_peaks(data, last_ind=last_ind, f_yn=f_yn)
-    print('Last ind: ', ind_ss[-1])
 
     # Only use cycles up to saturation for constant amplitude tests
     # Constant amplitude if ind_2prct=None and many peaks found

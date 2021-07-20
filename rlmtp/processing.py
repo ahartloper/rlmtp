@@ -83,7 +83,7 @@ def load_data_files(input_dir):
     if valid_downsample_data:
         data['downsampling'] = downsample_props
     else:
-        data['downsampling'] = None
+        data['downsampling'] = dict()
     return data
 
 
