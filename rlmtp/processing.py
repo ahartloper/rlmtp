@@ -7,7 +7,6 @@ data. Generally the data is required to be stored according to the protocols out
 
 import os
 import errno
-from typing_extensions import final
 import pandas as pd
 from .readers import import_dion7_data, import_catman_data
 from .sync_temperature import sync_temperature
