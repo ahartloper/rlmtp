@@ -111,13 +111,13 @@ Therefore, the normalized values have a range of 1.0 in both axes.
 Given this normalization, a tolerance of $\epsilon = 0.001$ has been found to be appropriate.
 This tolerance can be interpreted that ``straight'' is defined as 1/1000'th of the maximum ``distance'' spanned by the graph.
 Finally, noise in the data can cause spurious sampling of points.
-Therefore, a moving average filter is applied to the stress-strain data prior to normalization.
-The moving average filter requires a window length and an interpolation order.
+Therefore, a moving average filter (Savitzky-Golay, \texttt{scipy.signal.savgol\_filter}) is applied to the stress-strain data prior to normalization.
+The moving average filter requires a window length, $w$ and an interpolation order, $p$.
 A window length of 55 is used for the data prior to 2~\% strain (low strain rate), and a window length of 5 is used for the data past 2~\% strain.
 
 Filtering the stress-strain data removes the noise, but leads to aliasing.
 Recall that the peaks of the stress-strain signal are already included in part 1 of the overall procedure, therefore, aliasing is not an issue in part 2.
-For this reason, linear interpolation is used because it is most effective at reducing the noise (the trade-off is that it increases aliasing---which we have already dealt with).
+For this reason, linear interpolation ($p = 1$) is used because it is most effective at reducing the noise (the trade-off is that it increases aliasing---which we have already dealt with).
 Therefore, the set of 2-D points $\{x_i\}$ input to Algorithm~\ref{alg:max-dev-downsampler} are the filtered, normalized stress-strain data.
 
 \begin{algorithm}
@@ -140,20 +140,86 @@ Therefore, the set of 2-D points $\{x_i\}$ input to Algorithm~\ref{alg:max-dev-d
                 \State $i \gets k - 1$
             \EndIf
 		\EndFor
-        \State \textbf{return:} 
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Overall algorithm}
+\subsection{Additional sampling in the initial elastic region}
 
+The initial elastic region is assumed to be bounded by the first point in the data and the upper yield point obtained in part 1 of the overall procedure.
+It is important to have a few points in this region to obtain a good estimate of the initial elastic properties from the downsampled data.
+Therefore, $n_{elastic}$, additional points are sampled in the initial elastic region at approximately evenly spaced strain intervals.
+Each additional point is sampled using
+\begin{equation}
+    j = \arg \min \abs{x_i - x_{t}},
+\end{equation}
+where $x_t$ are the target evenly spaced strain points.
+
+\subsection{Saturation in constant amplitude tests}
+
+
+
+
+\subsection{Overall procedure}
+
+The overall procedure is summarized in Algorithm~\ref{alg:overall-summary}.
+The original stress-strain data is $X = \{x_i \}_{i=0}^{N-1}$.
+Algorithm~\ref{alg:overall-summary} produces a set of indices, $k_{sample}$.
+The downsampled stress-strain data is $X_{ds} = \{ x_i \mid i \in k_{sample} \}$.
+I emphasize that the downsampled data is sampled directly from the original data, therefore, $X_{ds} \subset X$.
+I.e., the filtered, normalized data is only used to determine the indices and the added elastic points are the closest indices to the targets.
+
+I recommend using the following input parameters for the Algorithm~\ref{alg:overall-summary}:
+\begin{itemize}
+    \item $f_{yn}$: based on the material
+    \item $\eta = 0.99$
+    \item $n_{cyc} = 10$
+    \item $\epsilon = 0.001$
+    \item $w = 5$
+    \item $\alpha = 11$
+    \item $p = 1$
+    \item $n_{elastic} = 7$
+\end{itemize}
 
 \begin{algorithm}
 	\caption{Overall summary of the proposed downsampling method.}
 	\label{alg:overall-summary}
 	\begin{algorithmic}[1]
-        \State hi
+        \State \textbf{input data:} set of stress-strain data, $\{x_i\}_{i=0}^{N-1}$
+        \State \textbf{input parameters:} nominal yield stress, $f_{yn}$; saturation tolerance in constant amplitude loading, $\eta$; minimum cycles in constant amplitude loading, $n_{cyc}$; max deviation downsampler tolerance, $\epsilon$; filter window length post-2~\% strain, $w$; filter window length pre-2~\% factor, $\alpha$; filter interpolation order, $p$; number of additional points in the initial elastic region, $n_{elastic}$.
+
+        \State \textbf{output:} $k_{sample}$ the indices of the sampled points.
+        \bigskip
+
+        \State Compute the initial elastic modulus and initial 0.2~\% offset yield stress using the nominal yield stress, $f_{yn}$
+        \State $k_{1} \gets $ indices of the peaks in the stress-strain graph
+        \If{constant amplitude loading}
+            \State Determine $n_{sat}$ cycles to reach $\sigma_i > \eta \cdot \max \sigma$ and $\sigma_i < \eta \cdot  \min \sigma$
+            \If{$n_{sat} < n_{cyc}$}
+                \State $n_{sat} \gets n_{cyc}$
+            \EndIf
+            \State Truncate data past $n_{sat}$ cycles
+        \EndIf
+        \State Filter stress data pre-2~\% strain with window length $\alpha \cdot w$ and order $p$
+        \State Filter stress data post-2~\% strain with window length $w$ and order $p$
+        \State Normalize the stress-strain data
+        \State $k_2 \gets$ indices from the max deviation downsampler with tolerance $\epsilon$
+        \State $k_3 \gets$ indices of $n_{elastic}$ evenly spaced points in the initial elastic region
+        \State $k_{sample} \gets k_1 \cup k_2 \cup k_3$
     \end{algorithmic}
 \end{algorithm}
+
+
+\section{Remarks}
+
+% mid point method
+
+% could use energy
+
+% could use different inner product rather than normalizing
+
+% can prove that this is the minimum number of points required?
+
+% any relation to convolutions?
 
 \end{document}
 
