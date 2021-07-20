@@ -7,6 +7,7 @@ data. Generally the data is required to be stored according to the protocols out
 
 import os
 import errno
+from typing_extensions import final
 import pandas as pd
 from .readers import import_dion7_data, import_catman_data
 from .sync_temperature import sync_temperature
@@ -161,6 +162,8 @@ def process_specimen_data(input_dir, output_dir, should_downsample=True):
             final_data = sync_temperature(dion7_data, catman_data)
         else:
             final_data = dion7_data.data
+        # Convert the index to integers
+        final_data.index = final_data.index.astype('int64')
         # Do the downsampling
         downsample_params = all_data['downsampling']
         if not should_downsample:
