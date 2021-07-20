@@ -1,10 +1,14 @@
 \documentclass[a4paper,11pt]{article}
 
 \usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
 \usepackage{graphicx}
 \usepackage{subcaption}
 \usepackage{microtype}
 \usepackage{algpseudocode, algorithm}
+\usepackage{hyperref}
+\usepackage{physics}
 
 \title{Downsampling inelastic cyclic stress-strain data with minimal points to preserve curvature}
 \author{A Hartloper}
@@ -88,35 +92,57 @@ To summarize, the sampled points from the first part are:
 
 \subsection{Curvature-based downsampling}
 
+The idea in the second part of the overall procedure is to remove as many points as possible in the ``straight'' regions of the stress-strain graph and keep as many as necessary in the ``curved'' regions.
+The algorithm used to accomplish this task was based on \url{https://kaushikghose.wordpress.com/2017/11/25/adaptively-downsampling-a-curve/}.
+The key to this algorithm is to define what is ``straight'', and to sample a point every time that this condition is violated.
 
+The method, named the ``maximum deviation downsampler'', is outlined in Algorithm~\ref{alg:max-dev-downsampler}.
+This method requires a set of points and a tolerance, $\epsilon$.
+The algorithm starts at the first point and steps through each point in the set.
+A line is computed between the starting point and the current point.
+The perpendicular distance is computed between the line and each point in the range of the starting and current point.
+If the perpendicular distance is greater than the tolerance, the point before the current point is sampled; the sampled point is then set as the starting point.
 
-% \begin{algorithm}
-% 	\caption{Detailed best-fit MPC coupling method using the nodal load method.}
-% 	\label{alg:mostafa-method}
-% 	\begin{algorithmic}[1]
-% 		\State \textbf{inputs:} 
-% 		\begin{itemize}
-% 			\item $\iniconfig\tenso{X}$: The set of continuum nodes in the initial configuration, size $3 \times N$.
-% 			\item $\tenso{U}_c$: The set of continuum nodal displacements, size $3 \times N$.
-% 			\item $N$: The number of continuum nodes.
-% 			\item $d$, $b_f$, $t_f$, $t_w$: The cross section dimensions.
-% 		\end{itemize}
-% 		\State \textbf{outputs:}
-% 		\begin{itemize}
-% 			\item $\tenso{u}_b$, $\tenso{\phi}_b$, $w_b$: The beam-column node DOF values.
-% 			% \item $\matdd{A}_1$: The constraint coefficient matrix for the beam-column node, size $7\times 7$.
-% 			\item $\matdd{A}$: The constraint coefficient matrix for the continuum nodes, size $7\times 3N$.
-% 		\end{itemize}
-% 		\hrulefill
-		
-% 		\State $\iniconfig\bar{\tenso{x}} \gets \mathrm{mean}\left[ \iniconfig\tenso{X} \right]$
-		
-% 		\For{$k \in [1, \ldots, N]$}
-% 			\State Set the active DOF in the continuum node $k$
-% 			\State Assign the $\matdd{A}_{k}$ submatrix from the  nodal forces
-% 		\EndFor
-% \end{algorithmic}
-% \end{algorithm}
+The keys to making Algorithm~\ref{alg:max-dev-downsampler} in the current context are to: compute an appropriate perpendicular distance, to use an appropriate tolerance, and to remove noise from the data.
+One challenge in stress-strain data is that the ``distances'' in stress and strain have different units.
+This is handled by normalizing the stress data by the range in stress ($\sigma_i^* = \sigma_i / (\max \sigma - \min \sigma)$), and the strain by the range in strain ($\varepsilon_i^* = \varepsilon_i / (\max \varepsilon - \min \varepsilon)$).
+Therefore, the normalized values have a range of 1.0 in both axes.
+
+Given this normalization, a tolerance of $\epsilon = 0.001$ has been found to be appropriate.
+This tolerance can be interpreted that ``straight'' is defined as 1/1000'th of the maximum ``distance'' spanned by the graph.
+Finally, noise in the data can cause spurious sampling of points.
+Therefore, a moving average filter is applied to the stress-strain data prior to normalization.
+The moving average filter requires a window length and an interpolation order.
+A window length of 55 is used for the data prior to 2~\% strain (low strain rate), and a window length of 5 is used for the data past 2~\% strain.
+
+Filtering the stress-strain data removes the noise, but leads to aliasing.
+Recall that the peaks of the stress-strain signal are already included in part 1 of the overall procedure, therefore, aliasing is not an issue in part 2.
+For this reason, linear interpolation is used because it is most effective at reducing the noise (the trade-off is that it increases aliasing---which we have already dealt with).
+Therefore, the set of 2-D points $\{x_i\}$ input to Algorithm~\ref{alg:max-dev-downsampler} are the filtered, normalized stress-strain data.
+
+\begin{algorithm}
+	\caption{Maximum deviation downsampler.}
+	\label{alg:max-dev-downsampler}
+	\begin{algorithmic}[1]
+		\State \textbf{input:} Set of points, $\{x_i\}_{i=0}^{N-1}$ with $x_i \in \mathbb{R}^n$ and $N \in \mathbb{Z}$; and tolerance, $\epsilon \in \mathbb{R}$.
+        \State \textbf{output:} Set of indices between $[0, N)$ to keep, $k_{sample}$.
+        \State $k_{sample} \gets \emptyset$
+        \State $i \gets 0$
+		\For{$j \in (0, \ldots, N)$}
+			\State $l \gets x_j - x_i$
+            \Comment Line between $i$ and $j$
+            \For{$k \in (i, \ldots, j)$}
+                \State $d_k \gets x_k \perp l$
+                \Comment Perpendicular line between $x_k$ and $l$
+            \EndFor
+            \If{$\max \norm{d_k}_2 > \epsilon$}
+                \State $k_{sample} \gets k_{sample} \cup \{k - 1 \}$
+                \State $i \gets k - 1$
+            \EndIf
+		\EndFor
+        \State \textbf{return:} 
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Overall algorithm}
 
