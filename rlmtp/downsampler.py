@@ -7,6 +7,20 @@ from .find_peaks import find_peaks, find_peaks2
 from .yield_properties import yield_properties
 
 
+def downsample_data(data, params):
+    """ Returns the downsampled data.
+    :param data pd.DataFrame: Stress-strain, time, and (optional) temperature data.
+    :param params dict: Parameters for `rlmtp_downsampler`.
+    :return pd.DataFrame: Downsampled stress-strain, time, and (temperature if provided).
+    """
+    ind = rlmtp_downsampler(data, **params)
+    cols_to_include = ['C_1_Temps[s]', 'e_true', 'Sigma_true']
+    temperature_col = 'Temperature[C]'
+    if temperature_col in data.columns:
+        cols_to_include += [temperature_col]
+    return data[cols_to_include].loc[ind]
+
+
 def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
                       n_elastic_region=7, apply_filter=True, wl_base_factor=5, wl_2prct_factor=11,
                       sat_tol=0.99, f_yn=345.0, use_midpoint_method=False):

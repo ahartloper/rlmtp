@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='rlmtp',
-      version='0.4.1',
+      version='0.5.0',
       description='RESSLab tools for material coupon test post-processing',
       url='https://c4science.ch/source/rlmtp/',
       author='ahartloper',
