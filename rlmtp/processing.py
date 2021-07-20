@@ -8,10 +8,10 @@ data. Generally the data is required to be stored according to the protocols out
 import os
 import errno
 import pandas as pd
-from .readers import import_dion7_data, import_catman_data, read_filter_info
+from .readers import import_dion7_data, import_catman_data
 from .sync_temperature import sync_temperature
 from .plotting import stress_strain_plotter, temp_time_plotter
-from .downsampler import downsample_data
+from .downsampler import downsample_data, read_downsample_props
 
 
 def dir_maker(directory):
@@ -28,7 +28,7 @@ def load_data_files(input_dir):
     """ Checks if the correct files exists and loads them if they do.
 
     :param str input_dir: Specimen parent directory.
-    :return dict: Contains the Dion7 data, catman data, and filtering data.
+    :return dict: Contains the Dion7 data, catman data, and downsampler data.
 
     - If any of the data files do not exist, then None is returned in their place.
     """
@@ -63,7 +63,7 @@ def load_data_files(input_dir):
     try:
         valid_file = [f for f in files_in_root if f[:len('downsampler_props')] == 'downsampler_props']
         downsample_file = os.path.join(input_dir, valid_file[0])
-        downsample_props = read_filter_info(downsample_file)
+        downsample_props = read_downsample_props(downsample_file)
         valid_downsample_data = True
         print('\t Using custom downsampling parameters.')
     except (FileNotFoundError, IndexError):
@@ -126,14 +126,14 @@ def process_specimen_data(input_dir, output_dir, should_downsample=True):
     :param str input_dir: Specimen directory containing the data.
     :param str output_dir: Directory where the output will be saved.
     :param bool should_downsample: If False, then do not downsample.
-    :return pd.DataFrame: Contains all the processed, filtered data collected by the function.
+    :return pd.DataFrame: Contains all the processed, downsampled data collected by the function.
 
     Notes:
     ======
         - For the definition of the specimen directory see rlmtp/protocols/readme.md
         - The structure of the specimen input directory must follow the specification. The behavior of this function
         depends on the files that exist.
-        - The Dion7 data must exist for this function to run, temperature and filtering data are optional.
+        - The Dion7 data must exist for this function to run, temperature and downsampling data are optional.
         - All of the output names are prepended by a string based on the input_dir string. For details on the prepended
         string, see the get_pre_name function.
         - If the temperature data exists, it is synced with the Dion7 data.
@@ -161,9 +161,11 @@ def process_specimen_data(input_dir, output_dir, should_downsample=True):
             final_data = sync_temperature(dion7_data, catman_data)
         else:
             final_data = dion7_data.data
-        # Do the filtering
+        # Do the downsampling
         downsample_params = all_data['downsampling']
-        if downsample_params is not None and not should_downsample:
+        if not should_downsample:
+            print('Skipping downsampling...')
+        else:
             print('Downsampling the data...')
             final_data = downsample_data(final_data, downsample_params)
         # Output the required files

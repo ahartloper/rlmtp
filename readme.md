@@ -1,7 +1,7 @@
 # RESSLab Material Test Processing
 
 RESSLab Material Test Processing (`rlmtp`) contains a number of tools to post-process uniaxial coupon test data.
-These tools are designed to aid with filtering stress-strain data, plotting results, synchronizing different
+These tools are designed to aid with downsampling stress-strain data, plotting results, synchronizing different
 measurements, extracting frames from videos at specified times, and more!
 A set of protocols are also provided that specify _how_ the test data should be stored, and functions are provided to
 rapidly process databases that are stored according to these protocols.
