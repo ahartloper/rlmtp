@@ -9,6 +9,8 @@
 \usepackage{algpseudocode, algorithm}
 \usepackage{hyperref}
 \usepackage{physics}
+\usepackage{cleveref}
+
 
 \title{Downsampling inelastic cyclic stress-strain data with minimal points to preserve curvature}
 \author{A Hartloper}
@@ -92,8 +94,10 @@ To summarize, the sampled points from the first part are:
 
 \subsection{Curvature-based downsampling}
 
+\subsubsection{The basic method}
+
 The idea in the second part of the overall procedure is to remove as many points as possible in the ``straight'' regions of the stress-strain graph and keep as many as necessary in the ``curved'' regions.
-The algorithm used to accomplish this task was based on \url{https://kaushikghose.wordpress.com/2017/11/25/adaptively-downsampling-a-curve/}.
+The algorithm used to accomplish this task was based on a blog by Kaushik Ghose\footnote{\label{fn:blog}\url{https://kaushikghose.wordpress.com/2017/11/25/adaptively-downsampling-a-curve/}}.
 The key to this algorithm is to define what is ``straight'', and to sample a point every time that this condition is violated.
 
 The method, named the ``maximum deviation downsampler'', is outlined in Algorithm~\ref{alg:max-dev-downsampler}.
@@ -136,12 +140,23 @@ Therefore, the set of 2-D points $\{x_i\}$ input to Algorithm~\ref{alg:max-dev-d
                 \Comment Perpendicular line between $x_k$ and $l$
             \EndFor
             \If{$\max \norm{d_k}_2 > \epsilon$}
-                \State $k_{sample} \gets k_{sample} \cup \{k - 1 \}$
-                \State $i \gets k - 1$
+                \State $k_{sample} \gets k_{sample} \cup \{j - 1 \}$
+                \State $i \gets j - 1$
             \EndIf
 		\EndFor
 \end{algorithmic}
 \end{algorithm}
+
+\subsubsection{The fast, less accurate method}
+
+As shown through the blog in \cref{fn:blog}, an alternative to using the maximum deviation is to use the mid-point deviation.
+The mid-point, $k_m$, is defined as the index nearest to half-way between $i$ and $j$ in Algorithm~\ref{alg:max-dev-downsampler}.
+Only the mid-point perpendicular distance, $d_{k_m}$, is computed rather than $d_k$ for $k \in (i, \ldots, j)$.
+Then, if $\norm{d_{k_m}}_2 > \epsilon$ the point $j - 1$ is sampled as usual.
+
+Using the mid-point is significantly faster, depending on the total number of points, the curvature, and the tolerance.
+Likely, it is around 10--100 times faster.
+The mid-point method is worse than the maximum method in that it may result in more samples and higher error between the sampled and original data.
 
 \subsection{Additional sampling in the initial elastic region}
 
@@ -156,29 +171,38 @@ where $x_t$ are the target evenly spaced strain points.
 
 \subsection{Saturation in constant amplitude tests}
 
+Cyclic hardening saturates logarithmically under constant amplitude cyclic loading in structural steel materials.
+Therefore, many cycles may be associated with a small increase in stress and a large portion of data is associated with a small amount of information.
+One option to reduce this data is to cut the cycles after saturation has been reached.
+The saturation point is defined as the index of the first peak that satisfies $\sigma_i > \eta \max \abs{\sigma}$ with $0 < \eta \leq 1$.
+The data after the saturation point is not sampled.
 
+Cutting cycles after saturation in constant amplitude tests requires the definition of the saturation tolerance, $\eta$.
+The minimum number of cycles to include, $n_{cyc}$, is also specified.
 
 
 \subsection{Overall procedure}
 
 The overall procedure is summarized in Algorithm~\ref{alg:overall-summary}.
-The original stress-strain data is $X = \{x_i \}_{i=0}^{N-1}$.
+The procedure consists of parts 1, 2, and~3 outlined earlier, with the incorporation of cycle cutting in constant amplitude tests.
+The original stress-strain data input to the procedure is $X = \{x_i \}_{i=0}^{N-1}$.
 Algorithm~\ref{alg:overall-summary} produces a set of indices, $k_{sample}$.
 The downsampled stress-strain data is $X_{ds} = \{ x_i \mid i \in k_{sample} \}$.
 I emphasize that the downsampled data is sampled directly from the original data, therefore, $X_{ds} \subset X$.
 I.e., the filtered, normalized data is only used to determine the indices and the added elastic points are the closest indices to the targets.
 
-I recommend using the following input parameters for the Algorithm~\ref{alg:overall-summary}:
+I recommend using the following input parameters in Algorithm~\ref{alg:overall-summary}:
 \begin{itemize}
     \item $f_{yn}$: based on the material
     \item $\eta = 0.99$
-    \item $n_{cyc} = 10$
+    \item $n_{cyc} = 20$
     \item $\epsilon = 0.001$
     \item $w = 5$
     \item $\alpha = 11$
     \item $p = 1$
     \item $n_{elastic} = 7$
 \end{itemize}
+The basis for these recommendations will be shown through later examples.
 
 \begin{algorithm}
 	\caption{Overall summary of the proposed downsampling method.}
@@ -193,7 +217,7 @@ I recommend using the following input parameters for the Algorithm~\ref{alg:over
         \State Compute the initial elastic modulus and initial 0.2~\% offset yield stress using the nominal yield stress, $f_{yn}$
         \State $k_{1} \gets $ indices of the peaks in the stress-strain graph
         \If{constant amplitude loading}
-            \State Determine $n_{sat}$ cycles to reach $\sigma_i > \eta \cdot \max \sigma$ and $\sigma_i < \eta \cdot  \min \sigma$
+            \State Determine $n_{sat}$ cycles to reach $\sigma_i > \eta \cdot \max \abs{\sigma}$
             \If{$n_{sat} < n_{cyc}$}
                 \State $n_{sat} \gets n_{cyc}$
             \EndIf
@@ -208,10 +232,55 @@ I recommend using the following input parameters for the Algorithm~\ref{alg:over
     \end{algorithmic}
 \end{algorithm}
 
+\section{Results}
+
+The results shown in this section were used to establish the recommended parameters.
+
 
 \section{Remarks}
 
-% mid point method
+\subsection{Different distance measures}
+
+As outlined, a challenge in the max deviation downsampler is the difference in units between stress and strain.
+I propose to re-scale the stress-strain data to then use a basic 2-norm when computing the perpendicular distance.
+I outline two other options that could be used rather than rescaling:
+\begin{enumerate}
+    \item use a different inner product: $d_k = \sqrt{x_k \cdot Y \cdot x_k}$, and
+    \item use an energy criterion.
+\end{enumerate}
+
+In the first option, Algorithm~\ref{alg:max-dev-downsampler} remains essential the same except for how $d_k$ is computed.
+To use a matrix-vector notation:
+\begin{equation*}
+    x_k = \begin{bmatrix}
+        \varepsilon_k \\
+        \sigma_k
+    \end{bmatrix}, \quad
+    Y = \begin{bmatrix}
+        \frac{1}{(\max \varepsilon - \min \varepsilon)^2} & 0 \\
+        0 & \frac{1}{(\max \sigma - \min \sigma)^2}
+    \end{bmatrix},
+\end{equation*}
+where the values of $Y$ would in this case give a similar effect to the scaling that I already use.
+Other options for $Y$ could be selected.
+Essentially, we compute a scaled distance rather than scale the data itself.
+This method would require a selection of tolerance $\epsilon$ and sample $j-1$ based on the same criterion.
+
+In the second option, the perpendicular distance criterion is replaced by the energy bounded by the polygon.
+In this case, instead of $d_k$'s we compute
+\begin{equation*}
+    e = \int_{\varepsilon_i}^{\varepsilon_j} (\sigma - l_\sigma)^2 \dd \varepsilon,
+\end{equation*}
+where $l_\sigma$ represents the stress signal of the line between $x_i$ and $x_j$.
+If the stress-strain graph is nearly straight, then $(\sigma - l_\sigma) \approx 0$.
+The point $j-1$ would be sampled if $e > \epsilon$.
+
+The benefits of the second method are that it does not require any scaling of the data and the error is closely related to the calibration problem.
+However, the link between the energy, $e$, and the curvature in the stress-strain graph is less clear, making it more difficult to reason about an appropriate tolerance.
+Everything considered, a tolerance still needs to be selected regardless of the method.
+I went with the data scaling option because, in my opinion, the link between the algorithm and the geometric interpretation of curvature is most clear.
+
+
 
 % could use energy
 
