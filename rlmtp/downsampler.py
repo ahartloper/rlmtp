@@ -190,7 +190,7 @@ def mid_dist(pos, n0, n1):
     return perp_dist(pos[n0, :], pos[int((n1 + n0) / 2), :], pos[n1, :])
 
 
-def max_deviation_downsampler(pos, thresh=0.1, use_midpoint_method=False):
+def max_deviation_downsampler(pos, thresh=0.001, use_midpoint_method=False):
     """ Downsamples pos by removing points within a perpindicular distance of the last point.
     :param pos np.array: (n, 2) Set of 2-dimensional points.
     :param thresh float: Maximum allowable perpindicular distance between sampled points.

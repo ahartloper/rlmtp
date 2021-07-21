@@ -7,10 +7,9 @@
 \usepackage{subcaption}
 \usepackage{microtype}
 \usepackage{algpseudocode, algorithm}
-\usepackage{hyperref}
+\PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
 \usepackage{physics}
 \usepackage{cleveref}
-
 
 \title{Downsampling inelastic cyclic stress-strain data with minimal points to preserve curvature}
 \author{A Hartloper}
@@ -117,7 +116,8 @@ This tolerance can be interpreted that ``straight'' is defined as 1/1000'th of t
 Finally, noise in the data can cause spurious sampling of points.
 Therefore, a moving average filter (Savitzky-Golay, \texttt{scipy.signal.savgol\_filter}) is applied to the stress-strain data prior to normalization.
 The moving average filter requires a window length, $w$ and an interpolation order, $p$.
-A window length of 55 is used for the data prior to 2~\% strain (low strain rate), and a window length of 5 is used for the data past 2~\% strain.
+Different window lengths are recommend for the data pre- and post-2~\% strain due to the different strain rates.
+% A window length of 55 is used for the data prior to 2~\% strain (low strain rate), and a window length of 5 is used for the data past 2~\% strain.
 
 Filtering the stress-strain data removes the noise, but leads to aliasing.
 Recall that the peaks of the stress-strain signal are already included in part 1 of the overall procedure, therefore, aliasing is not an issue in part 2.
@@ -147,7 +147,7 @@ Therefore, the set of 2-D points $\{x_i\}$ input to Algorithm~\ref{alg:max-dev-d
 \end{algorithmic}
 \end{algorithm}
 
-\subsubsection{The fast, less accurate method}
+\subsubsection{A faster, less accurate method}
 
 As shown through the blog in \cref{fn:blog}, an alternative to using the maximum deviation is to use the mid-point deviation.
 The mid-point, $k_m$, is defined as the index nearest to half-way between $i$ and $j$ in Algorithm~\ref{alg:max-dev-downsampler}.
@@ -174,7 +174,7 @@ where $x_t$ are the target evenly spaced strain points.
 Cyclic hardening saturates logarithmically under constant amplitude cyclic loading in structural steel materials.
 Therefore, many cycles may be associated with a small increase in stress and a large portion of data is associated with a small amount of information.
 One option to reduce this data is to cut the cycles after saturation has been reached.
-The saturation point is defined as the index of the first peak that satisfies $\sigma_i > \eta \max \abs{\sigma}$ with $0 < \eta \leq 1$.
+The saturation point is defined as the index of the first peak that satisfies $\sigma_i > \eta \cdot \max \sigma$ in the positive loading direction and $\sigma_i < \eta \cdot \min \sigma$ in the negative loading direction, with $0 < \eta \leq 1$.
 The data after the saturation point is not sampled.
 
 Cutting cycles after saturation in constant amplitude tests requires the definition of the saturation tolerance, $\eta$.
@@ -217,7 +217,7 @@ The basis for these recommendations will be shown through later examples.
         \State Compute the initial elastic modulus and initial 0.2~\% offset yield stress using the nominal yield stress, $f_{yn}$
         \State $k_{1} \gets $ indices of the peaks in the stress-strain graph
         \If{constant amplitude loading}
-            \State Determine $n_{sat}$ cycles to reach $\sigma_i > \eta \cdot \max \abs{\sigma}$
+            \State Determine $n_{sat}$ cycles to reach $\sigma_i > \eta \cdot \max \sigma$ and $\sigma_i < \eta \cdot \min \sigma$
             \If{$n_{sat} < n_{cyc}$}
                 \State $n_{sat} \gets n_{cyc}$
             \EndIf
@@ -236,6 +236,11 @@ The basis for these recommendations will be shown through later examples.
 
 The results shown in this section were used to establish the recommended parameters.
 
+\begin{figure}
+    \centering
+    \includegraphics{HEM320_C_LP8_inds.pdf}
+    \caption{Sampled points in LP8 from the HEM320 web dataset.}
+\end{figure}
 
 \section{Remarks}
 
@@ -243,26 +248,26 @@ The results shown in this section were used to establish the recommended paramet
 
 As outlined, a challenge in the max deviation downsampler is the difference in units between stress and strain.
 I propose to re-scale the stress-strain data to then use a basic 2-norm when computing the perpendicular distance.
-I outline two other options that could be used rather than rescaling:
+Two options that could be used rather than rescaling the data are:
 \begin{enumerate}
-    \item use a different inner product: $d_k = \sqrt{x_k \cdot Y \cdot x_k}$, and
+    \item use the norm induced by an alternative inner product: $\norm{d_k}_S = \sqrt{d_k \cdot S \cdot d_k}$, and
     \item use an energy criterion.
 \end{enumerate}
 
 In the first option, Algorithm~\ref{alg:max-dev-downsampler} remains essential the same except for how $d_k$ is computed.
 To use a matrix-vector notation:
 \begin{equation*}
-    x_k = \begin{bmatrix}
-        \varepsilon_k \\
-        \sigma_k
+    d_k = \begin{bmatrix}
+        d_{\varepsilon,k} \\
+        d_{\sigma,k}
     \end{bmatrix}, \quad
-    Y = \begin{bmatrix}
+    S = \begin{bmatrix}
         \frac{1}{(\max \varepsilon - \min \varepsilon)^2} & 0 \\
         0 & \frac{1}{(\max \sigma - \min \sigma)^2}
     \end{bmatrix},
 \end{equation*}
-where the values of $Y$ would in this case give a similar effect to the scaling that I already use.
-Other options for $Y$ could be selected.
+where the values of $S$ would in this case give a similar effect to the scaling that I already use.
+Other options for $S$ could be selected.
 Essentially, we compute a scaled distance rather than scale the data itself.
 This method would require a selection of tolerance $\epsilon$ and sample $j-1$ based on the same criterion.
 
@@ -277,6 +282,7 @@ The point $j-1$ would be sampled if $e > \epsilon$.
 
 The benefits of the second method are that it does not require any scaling of the data and the error is closely related to the calibration problem.
 However, the link between the energy, $e$, and the curvature in the stress-strain graph is less clear, making it more difficult to reason about an appropriate tolerance.
+It is also sensitive to noise because the energy is squared.
 Everything considered, a tolerance still needs to be selected regardless of the method.
 I went with the data scaling option because, in my opinion, the link between the algorithm and the geometric interpretation of curvature is most clear.
 
