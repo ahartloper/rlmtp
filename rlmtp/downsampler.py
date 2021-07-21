@@ -23,7 +23,7 @@ def downsample_data(data, params):
 
 def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
                       n_elastic_region=7, apply_filter=True, wl_base_factor=5, wl_2prct_factor=11,
-                      sat_tol=0.99, f_yn=345.0, use_midpoint_method=False):
+                      sat_tol=0.99, n_cycles_min=20, f_yn=345.0, use_midpoint_method=False):
     """ Returns the indices of data to keep.
     :param data pd.DataFrame: Contains the true stress-strain data.
     :param max_dev_tol float: Maximum allowable perpindicular distance between sampled points.
@@ -35,6 +35,8 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
     :param wl_2prct_factor int: Windowlength multiplier for the stress filter before 2% strain.
     :param sat_tol float: Proportion of maximum stress to consider saturated under constant amplitude loading.
                           0.0 < sat_tol <= 1.0. Set sat_tol=None to disable cycle cutting.
+    :param n_cycles_min int: Minimum number of cycles to use in constant amplitude tests.
+                             Only applies if sat_tol is not None.
     :param f_yn float: Nominal yield stress.
     :param use_midpoint_method bool: If True, use the mid point method in the max dev downsampling.
     :return list: Indices in data to keep.
@@ -65,8 +67,9 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
 
     # Only use cycles up to saturation for constant amplitude tests
     # Constant amplitude if ind_2prct=None and many peaks found
-    if ind_2prct is None and len(ind_ss) > 55 and sat_tol is not None:
-        ind_ss = keep_upto_saturation(data, ind_ss, sat_tol=sat_tol)
+    large_num_cycles = 55
+    if ind_2prct is None and len(ind_ss) > large_num_cycles and sat_tol is not None:
+        ind_ss = keep_upto_saturation(data, ind_ss, sat_tol=sat_tol, n_cycles_min=n_cycles_min)
 
     # Run max deviation downsampler
     # Remove noise in the stress with a moving average filter
