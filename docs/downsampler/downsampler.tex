@@ -11,7 +11,7 @@
 \usepackage{physics}
 \usepackage{cleveref}
 
-\title{Downsampling inelastic cyclic stress-strain data with minimal points to preserve curvature}
+\title{Downsampling inelastic cyclic stress-strain data while preserving its curvature}
 \author{A Hartloper}
 
 \begin{document}
@@ -30,8 +30,8 @@ When it comes to calibrating material models, the time required is proportional 
 Therefore, time can be saved by reducing the number of data points prior to running the calibration while maintaining the fidelity of the data.
 
 Experience has shown that the fidelity of an experiment can be kept with around 10--100 times less points depending on the load protocol.
-Calibrating the UVC model with ten load protocols \emph{without} reducing the number of points is, therefore, expected to take around several weeks to a year.
-A ``good'' method of reducing the number of data points, or \emph{downsampling} the data, is essential to keep the calibration time reasonable (say, on the order of days to a week per material).
+Calibrating the UVC model with ten load protocols \emph{without} reducing the number of points is, therefore, could take weeks to a year.
+A ``good'' method of reducing the number of data points, or \emph{downsampling} the data, is essential to keep the calibration time reasonable (say, on the order of hours to days per material).
 The properties that define a good downsampling method in this context are now defined.
 
 A good downsampler for inelastic, cyclic, stress-strain data of structural steels:
@@ -49,6 +49,23 @@ A good downsampler for inelastic, cyclic, stress-strain data of structural steel
 \end{enumerate}
 An algorithm that combines different techniques to satisfy these desirable properties is developed in this document.
 
+The initial inspiration was the blog in\footnote{\label{fn:blog}\url{https://kaushikghose.wordpress.com/2017/11/25/adaptively-downsampling-a-curve/}}.
+Then I found a wealth of literature, particularly in the domain of cartography.
+Two subproblems can be defined: the min-\# problem and the min-$\epsilon$ problem.
+The objective of the first problem is to determined the minimum number of sample points to provide a reasonably good approximation of the curve, the second is to find the minimum error between the original and sampled curves for a given number of points [ref imai+iri].
+In the first, an error critieria is specified ($\epsilon$), and in the second the number of points is specified ($N$).
+Many approximate solutions exist [RDP + survey] as well as optimal ones [imai and chan+chin, perez+vidal]
+The optimal solution to the first problem is easier (takes less computational effort) than the second one by a factor of $\log N$ [ref chan 
+chin].
+
+The most popular algorithm to determine an approximate solution to the min-\# problem appears to be the Ramer–Douglas–Peucker (RDP) algorithm [ref rdp].
+The RDP algorithm is not optimal and only finds a number of points $N$ close to the minimum.
+A number of additional points are certain to be added due to the criteria of selecting sample points.
+I.e., as the point at maximum perpendicular distance to the line between first and last points.
+This heuristic makes sense for graphs that are not ``cyclic'' but is not fantastic in our context.
+It is, however, the RDP algorithm is still quite good, comparatively fast, and has been widely implemented.
+Excellent visualizations of the RDP algorithm can be found\footnote{\url{https://karthaus.nl/rdp/}}.
+
 \section{Proposed algorithm}
 
 The proposed algorithm is composed of three parts.
@@ -58,10 +75,14 @@ The third part is to keep additional points in the initial elastic region.
 The final downsampled data is the unique set combining all three parts.
 
 Mosts of the heavy lifting is done in the second part.
-The first part is essential to overcome \emph{aliasing} in the sampled data.
+The first part is essential to overcome \emph{aliasing} in the sampled data and determine properties such as the number of cycles.
 The third part is essential to ensure fidelity of the initial elastic region.
 Details are given for each part and a summary of the entire procedure is given afterwards.
 
+
+% just try min-num because very fast with high local tol
+% compute global tol
+% if unacceptable, then do min-e with N pts per accumulated strain
 
 \subsection{Identifying peaks in the stress-strain graph}
 
@@ -91,14 +112,14 @@ To summarize, the sampled points from the first part are:
     \item the final strain point (typically 12.5~\% strain).
 \end{itemize}
 
-\subsection{Curvature-based downsampling}
-
-\subsubsection{The basic method}
+\subsection{Curvature-preserving downsampling}
 
 The idea in the second part of the overall procedure is to remove as many points as possible in the ``straight'' regions of the stress-strain graph and keep as many as necessary in the ``curved'' regions.
-The algorithm used to accomplish this task was based on a blog by Kaushik Ghose\footnote{\label{fn:blog}\url{https://kaushikghose.wordpress.com/2017/11/25/adaptively-downsampling-a-curve/}}.
 The key to this algorithm is to define what is ``straight'', and to sample a point every time that this condition is violated.
 
+\subsubsection{First attempt: Maximum deivation downsampler}
+
+The algorithm used to accomplish this task was based on a blog by Kaushik Ghose in \cref{fn:blog}.
 The method, named the ``maximum deviation downsampler'', is outlined in Algorithm~\ref{alg:max-dev-downsampler}.
 This method requires a set of points and a tolerance, $\epsilon$.
 The algorithm starts at the first point and steps through each point in the set.
@@ -147,16 +168,63 @@ Therefore, the set of 2-D points $\{x_i\}$ input to Algorithm~\ref{alg:max-dev-d
 \end{algorithmic}
 \end{algorithm}
 
-\subsubsection{A faster, less accurate method}
+% \subsubsection{A modi}
 
-As shown through the blog in \cref{fn:blog}, an alternative to using the maximum deviation is to use the mid-point deviation.
-The mid-point, $k_m$, is defined as the index nearest to half-way between $i$ and $j$ in Algorithm~\ref{alg:max-dev-downsampler}.
-Only the mid-point perpendicular distance, $d_{k_m}$, is computed rather than $d_k$ for $k \in (i, \ldots, j)$.
-Then, if $\norm{d_{k_m}}_2 > \epsilon$ the point $j - 1$ is sampled as usual.
+% As shown through the blog in \cref{fn:blog}, an alternative to using the maximum deviation is to use the mid-point deviation.
+% The mid-point, $k_m$, is defined as the index nearest to half-way between $i$ and $j$ in Algorithm~\ref{alg:max-dev-downsampler}.
+% Only the mid-point perpendicular distance, $d_{k_m}$, is computed rather than $d_k$ for $k \in (i, \ldots, j)$.
+% Then, if $\norm{d_{k_m}}_2 > \epsilon$ the point $j - 1$ is sampled as usual.
 
-Using the mid-point is significantly faster, depending on the total number of points, the curvature, and the tolerance.
-Likely, it is around 10--100 times faster.
-The mid-point method is worse than the maximum method in that it may result in more samples and higher error between the sampled and original data.
+% Using the mid-point is significantly faster, depending on the total number of points, the curvature, and the tolerance.
+% Likely, it is around 10--100 times faster.
+% The mid-point method is worse than the maximum method in that it may result a higher overall error between the sampled and original data for a given $\epsilon$.
+
+\subsubsection{Second attempt: The RDP algorithm}
+
+The RDP algorithm is similar to the maximum deviation downsampler in that it selects sample points based on local perpendicular distances.
+What differs is the choice of starting sample points and how sample points are progressively chosen.
+The RDP algorithm starts with $i = 0$ and $j = N-1$, then the first sample point is the max deviation from $l$.
+This bisects the overall curve, and each section is sampled recursively until the maximum deviation is lower than the tolerance $\epsilon$.
+The need for normalization and sensitivity to noise exist in the RDP algorithm as existed in the maximum deviation downsampler.
+Therefore, the stress-signal is filtered prior then normalized by the ranges in stress/strain prior to applying the RDP algorithm.
+
+\subsubsection{Limiting global error}
+
+Both the max deviation downsampler and the RDP algorithm operate using a local tolerance, $\epsilon$.
+However, it may be more appropriate to use a global tolerance on the difference between sampled and original data.
+The downsampled data can be compared with the original data using our ``standard'' error metric:
+\begin{equation}
+    \bar{\varphi} = \sqrt{\frac{\int (\sigma_{orig} - \sigma_{ds})^2 \dd \varepsilon^*}{E_{orig}}},
+\end{equation}
+where $E_{orig}$ is the total accumulated squared strain energy in the original data, $\sigma_{orig}, \sigma_{ds}$ are the stress signals of the original and downsampled data, and $\varepsilon^*$ is the accumulated strain.
+Linear interpolation is used to compute the downsampled data at each point between the sampled points, and the integrals are computed using the trapezoidal rule.
+
+An algorithm to keep the error metric below a global tolerance, $\epsilon_g$ is provided in Algorithm~\ref{alg:global-err-downsampling}.
+The idea is to select an initial (``large'') local tolerance, $\epsilon$.
+Then reduce the local tolerance and re-run the downsampling until $\bar{\varphi} < \epsilon_{g}$.
+This procedure is made accessible by the highly efficient implementation of the RDP algorithm in the Python package \texttt{polyprox}, however, the same method can be applied using other downsampling methods with a bit of time.
+Note that this is not an optimal algorithm.
+
+\begin{algorithm}
+	\caption{Downsampling for global error.}
+	\label{alg:global-err-downsampling}
+	\begin{algorithmic}[1]
+		\State \textbf{input:} Set of points, $\{x_i\}_{i=0}^{N-1}$ with $x_i \in \mathbb{R}^n$ and $N \in \mathbb{Z}$; local tolerance, $\epsilon \in \mathbb{R}$;
+        global tolerance $\epsilon_g \in \mathbb{R}$; and maximum iterations, $n_g \in \mathbb{Z}$.
+        \State \textbf{output:} Set of indices between $[0, N)$ to keep, $k_{sample}$.
+        \State $i \gets 0$
+        \State $\bar{\varphi} \gets 10 \cdot \epsilon_g$
+        \Comment Just to be larger than $\epsilon_g$ initially
+		\While{$\bar{\varphi} > \epsilon_g$ and $i < n_g$}
+            \State $k_{sample} \gets$ indices from RDP algorithm with local tolerance $\epsilon$
+            \State $\bar{\varphi} \gets$ error metric computed using $\{x_i\}$ and $k_{sample}$
+            \If{$\bar{\varphi} > \epsilon_g$}
+                \State $\epsilon \gets \epsilon \cdot (\epsilon_g / \bar{\varphi})$
+                \State $i \gets i + 1$
+            \EndIf
+		\EndWhile
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Additional sampling in the initial elastic region}
 
@@ -234,12 +302,24 @@ The basis for these recommendations will be shown through later examples.
 
 \section{Results}
 
-The results shown in this section were used to establish the recommended parameters.
+The results shown in this section were computed using the recommended parameters.
+Typical results are shown in Figure~\ref{fig:hem320-lp8-results}.
+Notice that the sampled points are concentrated in the initial elastic and curved regions.
+These concentrations are due to the additional points in the initial elastic region and the max deviation downsampler.
+
+The error between the original and downsampled data is 0.742~\% for the test shown in Figure~\ref{fig:hem320-lp8-results}.
+The number of points has been reduced from 8434 to 84---a factor of approximately 100.
+For the cases I have investigated so far, the maximum error around 2~\% using the default parameters.
+A more detailed investigation is pending.
+Regardless, the error between the original and downsampled data can be controlled by modifying the tolerance $\epsilon$ depending on the analysts' desired error level.
+I recommend that the maximum error be kept within the neighborhood of 2~\%.
+
 
 \begin{figure}
     \centering
     \includegraphics{HEM320_C_LP8_inds.pdf}
-    \caption{Sampled points in LP8 from the HEM320 web dataset.}
+    \caption{Sampled points in LP8 from the HEM320 web dataset. Line = test data, dots = sampled points.}
+    \label{fig:hem320-lp8-results}
 \end{figure}
 
 \section{Remarks}
@@ -250,11 +330,16 @@ As outlined, a challenge in the max deviation downsampler is the difference in u
 I propose to re-scale the stress-strain data to then use a basic 2-norm when computing the perpendicular distance.
 Two options that could be used rather than rescaling the data are:
 \begin{enumerate}
+    \item use the angle between the line and each point,
     \item use the norm induced by an alternative inner product: $\norm{d_k}_S = \sqrt{d_k \cdot S \cdot d_k}$, and
     \item use an energy criterion.
 \end{enumerate}
 
-In the first option, Algorithm~\ref{alg:max-dev-downsampler} remains essential the same except for how $d_k$ is computed.
+The first option is similar to the maximum perpendicular distance, but more sensitive to noise.
+This is because of the small angle rule, $\sin \theta \approx \theta$, and the perpendicular distance is $\norm{v}_2 \sin \theta$, where $v = x_k - x_i$.
+If $\norm{v}_2$ is small, the angle can have a large variation (i.e., in the case of high frequency noise), however, the perpendicular distance remains small.
+
+In the second option, Algorithm~\ref{alg:max-dev-downsampler} remains essential the same except for how $d_k$ is computed.
 To use a matrix-vector notation:
 \begin{equation*}
     d_k = \begin{bmatrix}
@@ -271,10 +356,10 @@ Other options for $S$ could be selected.
 Essentially, we compute a scaled distance rather than scale the data itself.
 This method would require a selection of tolerance $\epsilon$ and sample $j-1$ based on the same criterion.
 
-In the second option, the perpendicular distance criterion is replaced by the energy bounded by the polygon.
+In the third option, the perpendicular distance criterion is replaced by the energy bounded by the polygon.
 In this case, instead of $d_k$'s we compute
 \begin{equation*}
-    e = \int_{\varepsilon_i}^{\varepsilon_j} (\sigma - l_\sigma)^2 \dd \varepsilon,
+    e = \int_{\varepsilon_i}^{\varepsilon_j} (\sigma - l_\sigma) \dd \varepsilon,
 \end{equation*}
 where $l_\sigma$ represents the stress signal of the line between $x_i$ and $x_j$.
 If the stress-strain graph is nearly straight, then $(\sigma - l_\sigma) \approx 0$.
@@ -282,19 +367,19 @@ The point $j-1$ would be sampled if $e > \epsilon$.
 
 The benefits of the second method are that it does not require any scaling of the data and the error is closely related to the calibration problem.
 However, the link between the energy, $e$, and the curvature in the stress-strain graph is less clear, making it more difficult to reason about an appropriate tolerance.
-It is also sensitive to noise because the energy is squared.
 Everything considered, a tolerance still needs to be selected regardless of the method.
 I went with the data scaling option because, in my opinion, the link between the algorithm and the geometric interpretation of curvature is most clear.
 
+\subsection{More than two dimensions}
 
+This document assumes two-dimensional data parametrized as a function of time, i.e., $x(t) \in \mathcal{D} \times \mathcal{T}$, where $\mathcal{D} \subset \mathbb{R}^n$ and $n$ is the dimension of the data ($n = 2$ in our case---uniaxial stress/strain), and $t \in \mathcal{T}$ is the time.
+Algorithm~\ref{alg:overall-summary} can easily be extended to $n > 2$ by preserving curvature in each considered data pair.
+The same procedure can then be used with an appropriate tolerance, $\epsilon$, and an appropriate scaling procedure by sampling a point anytime the tolerance is exceeded by one of the pairs.
+Considering higher dimensions may be useful, for instance:
+\begin{itemize}
+    \item when downsampling temperature and stress-strain data together (can preserve curvature in both temperature-strain and stress-stress), and
+    \item when downsampling data considering multiple components of the stress-strain tensor (e.g., multiaxial material tests).
+\end{itemize}
 
-% could use energy
-
-% could use different inner product rather than normalizing
-
-% can prove that this is the minimum number of points required?
-
-% any relation to convolutions?
 
 \end{document}
-
