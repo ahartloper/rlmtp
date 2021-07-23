@@ -120,7 +120,7 @@ def apply_downsampler(d, last_ind, tol, use_midpoint_method=False):
     # Only use the data up to the last index from the stress-strain peaks
     d = d[0:last_ind+1, :]
     # ind_ds = max_deviation_downsampler(d, tol, use_midpoint_method)
-    ind_ds = polyprox.min_num(d, epsilon=tol, return_index=True)
+    ind_ds = list(polyprox.min_num(d, epsilon=tol, return_index=True))
     return ind_ds
 
 
@@ -398,4 +398,4 @@ def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=10, remova
         ds_tol *= (global_tol / e)
         it += 1
 
-    return ind
+    return list(ind)
