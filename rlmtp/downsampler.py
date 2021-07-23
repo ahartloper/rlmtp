@@ -23,12 +23,14 @@ def downsample_data(data, params):
     return data[cols_to_include].loc[ind]
 
 
-def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
+def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind=None, removal_ranges=[],
                       n_elastic_region=7, apply_filter=True, wl_base_factor=5, wl_2prct_factor=11,
                       sat_tol=0.99, n_cycles_min=20, f_yn=345.0, use_midpoint_method=False):
     """ Returns the indices of data to keep.
     :param data pd.DataFrame: Contains the true stress-strain data.
-    :param max_dev_tol float: Maximum allowable perpindicular distance between sampled points.
+    :param use_local_error bool: If True, then downsample_tol is applied to the local criteria.
+                                 If False, then applied to the global criteria.
+    :param downsample_tol float: Maximum allowable perpindicular distance between sampled points.
     :param last_ind int: Last index to keep in the data.
     :param removal_ranges list: (list) Each list specifies ranges of indices to remove.
     :param n_elastic_region int: Number of extra points to keep in the initial elastic range.
@@ -53,6 +55,9 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
             - removal_ranges = [[i_0, i_1], [i_2, i_3], ...]
             - Indices i_0, i_1, i_2, i_3, ... are added to the data
             - Any indicies i with i_0 < i < i_1, i_2 < i < i_3, ... will be removed
+        - The local criteria uses downsample_tol as the local epsilon.
+        - The global criteria iterates the local epsilon until the global criteria on all the sampled
+          data and the original data is satisfied.
         - Adds extra data to the initial elastic region to have fidelity in this area
         - If apply_filter=True, a moving average filter is applied to the stress after the
         peaks have been selected, but before the max deviation downsampler is applied. Therefore,
@@ -66,6 +71,7 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
     """
     # Obtain the "peaks" in the stress-strain data
     ind_ss, ind_2prct = stress_strain_peaks(data, last_ind=last_ind, f_yn=f_yn)
+    ind_ss = sorted(ind_ss)
 
     # Only use cycles up to saturation for constant amplitude tests
     # Constant amplitude if ind_2prct=None and many peaks found
@@ -78,7 +84,10 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
     d = np.array(data[['e_true', 'Sigma_true']])
     if apply_filter:
         d[:, 1] = filter_stress(d, ind_2prct, wl_base=wl_base_factor, wl_factor=wl_2prct_factor)
-    ind_downsampler = apply_downsampler(d, ind_ss[-1], max_dev_tol, use_midpoint_method=use_midpoint_method)
+    if use_local_error:
+        ind_downsampler = apply_downsampler(d, ind_ss[-1], downsample_tol, use_midpoint_method=use_midpoint_method)
+    else:
+        ind_downsampler = downsample_loop(d, ind_ss[-1], downsample_tol)
 
     # Combine the points, remove any points that lie between the removal ranges
     ind_final = ind_ss + ind_downsampler
@@ -87,10 +96,17 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
     ind_final = sorted(list(set(ind_final)))
 
     # Keep extra points in initial elastic region
-    ind_final += add_to_elastic(d, [ind_final[0], ind_final[1]], n_elastic_region)
+    ind_final += add_to_elastic(d, [ind_ss[0], ind_ss[1]], n_elastic_region)
     # Sort again and return
     ind_final = sorted(list(set(ind_final)))
     return ind_final
+
+
+def scale_data(d):
+    """ Scale the x,y to have unit max length in both axes. """
+    d[:, 0] = d[:, 0] / (d[:, 0].max() - d[:, 0].min())
+    d[:, 1] = d[:, 1] / (d[:, 1].max() - d[:, 1].min())
+    return d
 
 
 def apply_downsampler(d, last_ind, tol, use_midpoint_method=False):
@@ -100,9 +116,7 @@ def apply_downsampler(d, last_ind, tol, use_midpoint_method=False):
     :param tol float: Threshold to use in the downsampler.
     :return list: Indices to keep.
     """
-    # Scale the x,y to have unit max length in both axes
-    d[:, 0] = d[:, 0] / (d[:, 0].max() - d[:, 0].min())
-    d[:, 1] = d[:, 1] / (d[:, 1].max() - d[:, 1].min())
+    d = scale_data(d)
     # Only use the data up to the last index from the stress-strain peaks
     d = d[0:last_ind+1, :]
     # ind_ds = max_deviation_downsampler(d, tol, use_midpoint_method)
@@ -283,8 +297,14 @@ def stress_strain_peaks(d, last_ind=None, f_yn=345.0):
     return i_final, i_2prct
 
 
-def downsample_error(d, ind):
+def downsample_error(d, ind, removal_ranges=[]):
     """ Returns the accumulated relative energy error between the original and downsampled data. """
+    # Remove any data in removal ranges so compute correct error
+    if len(removal_ranges) > 0:
+        remove_ind = []
+        remove_ind = [remove_ind + range(r[0]+1, r[1]) for r in removal_ranges]
+        d = np.delete(d, remove_ind, axis=0)
+    # Compute error
     x = np.array([0.0] + list(np.cumsum(np.abs(np.diff(d[:ind[-1] + 1, 0])))))
     y = d[:ind[-1] + 1, 1]
     xi = x[ind]
@@ -363,14 +383,17 @@ def read_downsample_props(fpath):
     return properties
 
 
-def downsample_loop(d, global_tol, local_tol_0=0.1, max_its=10):
+def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=10, removal_ranges=[]):
     """ Runs downsampler until a global tolerance is reached. """
+    d = scale_data(d)
+    # Only use the data up to the last index from the stress-strain peaks
+    d = d[0:last_ind+1, :]
     ds_tol = local_tol_0
     e = 10 * global_tol
     it = 0
     while e > global_tol and it < max_its:
         ind = polyprox.min_num(d, epsilon=ds_tol, return_index=True)
-        e = downsample_error(d, ind)
+        e = downsample_error(d, ind, removal_ranges)
         print('Current error = {0:0.1%}, # points = {1}, current tol = {2:0.3e}'.format(e, len(ind), ds_tol))
         ds_tol *= (global_tol / e)
         it += 1

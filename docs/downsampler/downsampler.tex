@@ -119,8 +119,7 @@ The key to this algorithm is to define what is ``straight'', and to sample a poi
 
 \subsubsection{First attempt: Maximum deivation downsampler}
 
-The algorithm used to accomplish this task was based on a blog by Kaushik Ghose in \cref{fn:blog}.
-The method, named the ``maximum deviation downsampler'', is outlined in Algorithm~\ref{alg:max-dev-downsampler}.
+The method, named the ``maximum deviation downsampler'', is outlined in Algorithm~\ref{alg:max-dev-downsampler} based on a blog by Kaushik Ghose in \cref{fn:blog}.
 This method requires a set of points and a tolerance, $\epsilon$.
 The algorithm starts at the first point and steps through each point in the set.
 A line is computed between the starting point and the current point.
@@ -132,7 +131,7 @@ One challenge in stress-strain data is that the ``distances'' in stress and stra
 This is handled by normalizing the stress data by the range in stress ($\sigma_i^* = \sigma_i / (\max \sigma - \min \sigma)$), and the strain by the range in strain ($\varepsilon_i^* = \varepsilon_i / (\max \varepsilon - \min \varepsilon)$).
 Therefore, the normalized values have a range of 1.0 in both axes.
 
-Given this normalization, a tolerance of $\epsilon = 0.001$ has been found to be appropriate.
+Given this normalization, a tolerance of $\epsilon = 0.001$ is usually appropriate.
 This tolerance can be interpreted that ``straight'' is defined as 1/1000'th of the maximum ``distance'' spanned by the graph.
 Finally, noise in the data can cause spurious sampling of points.
 Therefore, a moving average filter (Savitzky-Golay, \texttt{scipy.signal.savgol\_filter}) is applied to the stress-strain data prior to normalization.
@@ -242,7 +241,7 @@ where $x_t$ are the target evenly spaced strain points.
 Cyclic hardening saturates logarithmically under constant amplitude cyclic loading in structural steel materials.
 Therefore, many cycles may be associated with a small increase in stress and a large portion of data is associated with a small amount of information.
 One option to reduce this data is to cut the cycles after saturation has been reached.
-The saturation point is defined as the index of the first peak that satisfies $\sigma_i > \eta \cdot \max \sigma$ in the positive loading direction and $\sigma_i < \eta \cdot \min \sigma$ in the negative loading direction, with $0 < \eta \leq 1$.
+The saturation point is defined herein as the index of the first peak $i$ that satisfies $\sigma_i > \eta \cdot \max \sigma$ in the positive loading direction and $\sigma_i < \eta \cdot \min \sigma$ in the negative loading direction, with $0 < \eta \leq 1$.
 The data after the saturation point is not sampled.
 
 Cutting cycles after saturation in constant amplitude tests requires the definition of the saturation tolerance, $\eta$.
@@ -252,12 +251,12 @@ The minimum number of cycles to include, $n_{cyc}$, is also specified.
 \subsection{Overall procedure}
 
 The overall procedure is summarized in Algorithm~\ref{alg:overall-summary}.
-The procedure consists of parts 1, 2, and~3 outlined earlier, with the incorporation of cycle cutting in constant amplitude tests.
+The procedure consists of parts 1, 2, and~3 outlined earlier, with the incorporation of cycle cutting after saturation in constant amplitude tests.
 The original stress-strain data input to the procedure is $X = \{x_i \}_{i=0}^{N-1}$.
 Algorithm~\ref{alg:overall-summary} produces a set of indices, $k_{sample}$.
 The downsampled stress-strain data is $X_{ds} = \{ x_i \mid i \in k_{sample} \}$.
 I emphasize that the downsampled data is sampled directly from the original data, therefore, $X_{ds} \subset X$.
-I.e., the filtered, normalized data is only used to determine the indices and the added elastic points are the closest indices to the targets.
+(Just to emphasize that the filtered, normalized data is only used to determine the indices and the added elastic points are the closest indices to the targets.)
 
 I recommend using the following input parameters in Algorithm~\ref{alg:overall-summary}:
 \begin{itemize}
@@ -271,6 +270,9 @@ I recommend using the following input parameters in Algorithm~\ref{alg:overall-s
     \item $n_{elastic} = 7$
 \end{itemize}
 The basis for these recommendations will be shown through later examples.
+The global error method can be used instead by swapping line~\ref{algline:downsampler} with the results from Algorithm~\ref{alg:global-err-downsampling} using a global error, $\epsilon_g$, rather than $\epsilon$.
+A recommended value of $\epsilon_g$ is 0.015.
+
 
 \begin{algorithm}
 	\caption{Overall summary of the proposed downsampling method.}
@@ -294,11 +296,13 @@ The basis for these recommendations will be shown through later examples.
         \State Filter stress data pre-2~\% strain with window length $\alpha \cdot w$ and order $p$
         \State Filter stress data post-2~\% strain with window length $w$ and order $p$
         \State Normalize the stress-strain data
-        \State $k_2 \gets$ indices from the max deviation downsampler with tolerance $\epsilon$
+        \State $k_2 \gets$ indices from downsampler with tolerance $\epsilon$ \label{algline:downsampler}
         \State $k_3 \gets$ indices of $n_{elastic}$ evenly spaced points in the initial elastic region
         \State $k_{sample} \gets k_1 \cup k_2 \cup k_3$
     \end{algorithmic}
 \end{algorithm}
+
+
 
 \section{Results}
 
