@@ -25,7 +25,7 @@ def downsample_data(data, params):
 
 def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind=None, removal_ranges=[],
                       n_elastic_region=7, apply_filter=True, wl_base_factor=5, wl_2prct_factor=11,
-                      sat_tol=0.99, n_cycles_min=20, f_yn=345.0, use_midpoint_method=False):
+                      sat_tol=0.99, n_cycles_min=20, f_yn=345.0):
     """ Returns the indices of data to keep.
     :param data pd.DataFrame: Contains the true stress-strain data.
     :param use_local_error bool: If True, then downsample_tol is applied to the local criteria.
@@ -42,14 +42,13 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     :param n_cycles_min int: Minimum number of cycles to use in constant amplitude tests.
                              Only applies if sat_tol is not None.
     :param f_yn float: Nominal yield stress.
-    :param use_midpoint_method bool: If True, use the mid point method in the max dev downsampling.
     :return list: Indices in data to keep.
 
     Notes:
     ======
         - Uses two downsampling strategies:
             1. Keep the "peaks" of the stress-strain data
-            2. Max deviation downsampler to remove points inbetween peaks
+            2. Ramer–Douglas–Peucker (RDP) algorithm to remove points inbetween peaks
         - Can specify where the data should end with last_ind
         - Can specify ranges of indices to remove with removal_ranges as follows:
             - removal_ranges = [[i_0, i_1], [i_2, i_3], ...]
@@ -60,14 +59,13 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
           data and the original data is satisfied.
         - Adds extra data to the initial elastic region to have fidelity in this area
         - If apply_filter=True, a moving average filter is applied to the stress after the
-        peaks have been selected, but before the max deviation downsampler is applied. Therefore,
+        peaks have been selected, but before the RDP downsampler is applied. Therefore,
         the peaks of the stress-strain data are maintained and the result is somewhat robust to
         noise in the stress data. See rlmtp.downsampler.filter_stress for details on the stresss filter.
         - wl_base_factor and wl_2prct_factor are parameters of the stress filter.
         - Cycle cutting with sat_tol takes cycles up to and including when stress > sat_tol*max(stress)
           and stress < sat_tol*min(stress). This assumes a cyclic hardening behavior and should be
           disabled for cycling softening by using sat_tol=None.
-        - The mid point method tends to lead to more points and higher error, but is much faster.
     """
     # Obtain the "peaks" in the stress-strain data
     ind_ss, ind_2prct = stress_strain_peaks(data, last_ind=last_ind, f_yn=f_yn)
@@ -85,7 +83,7 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     if apply_filter:
         d[:, 1] = filter_stress(d, ind_2prct, wl_base=wl_base_factor, wl_factor=wl_2prct_factor)
     if use_local_error:
-        ind_downsampler = apply_downsampler(d, ind_ss[-1], downsample_tol, use_midpoint_method=use_midpoint_method)
+        ind_downsampler = apply_downsampler(d, ind_ss[-1], downsample_tol)
     else:
         ind_downsampler = downsample_loop(d, ind_ss[-1], downsample_tol)
 
@@ -109,7 +107,7 @@ def scale_data(d):
     return d
 
 
-def apply_downsampler(d, last_ind, tol, use_midpoint_method=False):
+def apply_downsampler(d, last_ind, tol):
     """ Returns the indices to keep in d.
     :param d np.array: x-y data.
     :param last_ind int: Only considers d[0:last_ind+1].
@@ -119,7 +117,7 @@ def apply_downsampler(d, last_ind, tol, use_midpoint_method=False):
     d = scale_data(d)
     # Only use the data up to the last index from the stress-strain peaks
     d = d[0:last_ind+1, :]
-    # ind_ds = max_deviation_downsampler(d, tol, use_midpoint_method)
+    # ind_ds = max_deviation_downsampler(d, tol)
     ind_ds = list(polyprox.min_num(d, epsilon=tol, return_index=True))
     return ind_ds
 

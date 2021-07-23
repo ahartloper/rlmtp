@@ -203,6 +203,7 @@ The idea is to select an initial (``large'') local tolerance, $\epsilon$.
 Then reduce the local tolerance and re-run the downsampling until $\bar{\varphi} < \epsilon_{g}$.
 This procedure is made accessible by the highly efficient implementation of the RDP algorithm in the Python package \texttt{polyprox}, however, the same method can be applied using other downsampling methods with a bit of time.
 Note that this is not an optimal algorithm.
+Another note is that my implementation uses the filtered/scaled ``$\sigma_{orig}$'' to compute $\bar{\varphi}$, thus, the true error between the sampled data will likely be slightly higher.
 
 \begin{algorithm}
 	\caption{Downsampling for global error.}
@@ -263,7 +264,7 @@ I recommend using the following input parameters in Algorithm~\ref{alg:overall-s
     \item $f_{yn}$: based on the material
     \item $\eta = 0.99$
     \item $n_{cyc} = 20$
-    \item $\epsilon = 0.001$
+    \item $\epsilon = 0.001$ or $\epsilon_g = 0.009$
     \item $w = 5$
     \item $\alpha = 11$
     \item $p = 1$
@@ -271,7 +272,7 @@ I recommend using the following input parameters in Algorithm~\ref{alg:overall-s
 \end{itemize}
 The basis for these recommendations will be shown through later examples.
 The global error method can be used instead by swapping line~\ref{algline:downsampler} with the results from Algorithm~\ref{alg:global-err-downsampling} using a global error, $\epsilon_g$, rather than $\epsilon$.
-A recommended value of $\epsilon_g$ is 0.015.
+A value of of $\epsilon_g = 0.009$ is recommended if $\bar{\varphi}$ is computed based on the filtered/normalized stress-strain data so that the final overall error is around 1~\%.
 
 
 \begin{algorithm}
