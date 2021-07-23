@@ -395,7 +395,8 @@ def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=10, remova
         ind = polyprox.min_num(d, epsilon=ds_tol, return_index=True)
         e = downsample_error(d, ind, removal_ranges)
         print('Current error = {0:0.1%}, # points = {1}, current tol = {2:0.3e}'.format(e, len(ind), ds_tol))
-        ds_tol *= (global_tol / e)
+        # 1.05 below to force a continued reduction near global_tol = e
+        ds_tol *= (global_tol / e / 1.05)
         it += 1
 
     return list(ind)
