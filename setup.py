@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='rlmtp',
-      version='0.5.0',
+      version='0.5.1',
       description='RESSLab tools for material coupon test post-processing',
       url='https://c4science.ch/source/rlmtp/',
       author='ahartloper',
@@ -9,6 +9,6 @@ setup(name='rlmtp',
       license='MIT',
       packages=['rlmtp'],
       install_requires=[
-          'numpy', 'pandas>=0.24.1', 'xlrd', 'matplotlib'
+          'numpy', 'pandas>=0.24.1', 'xlrd', 'matplotlib', 'polyprox'
       ],
       zip_safe=False)
