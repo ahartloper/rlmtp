@@ -2,7 +2,9 @@
 Function to downsample stress-strain data.
 """
 import numpy as np
+from numpy.lib.polynomial import poly
 from scipy.signal import savgol_filter
+import polyprox
 from .find_peaks import find_peaks, find_peaks2
 from .yield_properties import yield_properties
 
@@ -91,11 +93,11 @@ def rlmtp_downsampler(data, max_dev_tol=0.001, last_ind=None, removal_ranges=[],
     return ind_final
 
 
-def apply_downsampler(d, last_ind, max_dev_tol, use_midpoint_method=False):
+def apply_downsampler(d, last_ind, tol, use_midpoint_method=False):
     """ Returns the indices to keep in d.
     :param d np.array: x-y data.
     :param last_ind int: Only considers d[0:last_ind+1].
-    :param max_dev_tol float: Threshold to use in the max deviation downsampler.
+    :param tol float: Threshold to use in the downsampler.
     :return list: Indices to keep.
     """
     # Scale the x,y to have unit max length in both axes
@@ -103,8 +105,9 @@ def apply_downsampler(d, last_ind, max_dev_tol, use_midpoint_method=False):
     d[:, 1] = d[:, 1] / (d[:, 1].max() - d[:, 1].min())
     # Only use the data up to the last index from the stress-strain peaks
     d = d[0:last_ind+1, :]
-    ind_max_dev = max_deviation_downsampler(d, max_dev_tol, use_midpoint_method)
-    return ind_max_dev
+    # ind_ds = max_deviation_downsampler(d, tol, use_midpoint_method)
+    ind_ds = polyprox.min_num(d, epsilon=tol, return_index=True)
+    return ind_ds
 
 
 def apply_removal_ranges(ind_final, removal_ranges):
@@ -358,3 +361,18 @@ def read_downsample_props(fpath):
             properties[p] = sani(ls[1].strip(), p)
         properties['removal_ranges'] = rr
     return properties
+
+
+def downsample_loop(d, global_tol, local_tol_0=0.1, max_its=10):
+    """ Runs downsampler until a global tolerance is reached. """
+    ds_tol = local_tol_0
+    e = 10 * global_tol
+    it = 0
+    while e > global_tol and it < max_its:
+        ind = polyprox.min_num(d, epsilon=ds_tol, return_index=True)
+        e = downsample_error(d, ind)
+        print('Current error = {0:0.1%}, # points = {1}, current tol = {2:0.3e}'.format(e, len(ind), ds_tol))
+        ds_tol *= (global_tol / e)
+        it += 1
+
+    return ind
