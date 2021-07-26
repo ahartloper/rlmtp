@@ -120,13 +120,14 @@ def generate_output(data, output_dir, pre_name):
     return
 
 
-def process_specimen_data(input_dir, output_dir, should_downsample=True, force_global_downsample=True):
+def process_specimen_data(input_dir, output_dir, should_downsample=True, default_global_downsample=True):
     """ Generates the final .csv output and plots the relevant data.
 
     :param str input_dir: Specimen directory containing the data.
     :param str output_dir: Directory where the output will be saved.
     :param bool should_downsample: If False, then do not downsample.
-    :param bool force_global_downsample: If True, then uses the global downsamping method.
+    :param bool default_global_downsample: If True, then uses the global downsamping method, else uses
+                                         the local downsampling method.
     :return pd.DataFrame: Contains all the processed, downsampled data collected by the function.
 
     Notes:
@@ -138,6 +139,9 @@ def process_specimen_data(input_dir, output_dir, should_downsample=True, force_g
         - All of the output names are prepended by a string based on the input_dir string. For details on the prepended
         string, see the get_pre_name function.
         - If the temperature data exists, it is synced with the Dion7 data.
+        - Option "default_global_downsample" is ignored if "use_local_error" is specified in the downsample_props.txt.
+        - The global downsampling tolerance is set to 0.5% if default_global_downsample=True, else default parameters
+        are used.
     """
     # First check if the data already exists at the output location
     print('Processing data in {0}'.format(input_dir))
@@ -168,7 +172,7 @@ def process_specimen_data(input_dir, output_dir, should_downsample=True, force_g
         downsample_params = all_data['downsampling']
         # Choose local or global method if not specified
         if 'use_local_error' not in downsample_params:
-            if force_global_downsample:
+            if default_global_downsample:
                 downsample_params['use_local_error'] = False
                 downsample_params['downsample_tol'] = 0.005
             else:
