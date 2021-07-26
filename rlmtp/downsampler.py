@@ -69,7 +69,8 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     """
     # Obtain the "peaks" in the stress-strain data
     ind_ss, ind_2prct = stress_strain_peaks(data, last_ind=last_ind, f_yn=f_yn)
-    ind_ss = sorted(ind_ss)
+    # Remove any duplicates and sort
+    ind_ss = sorted(list(set(ind_ss)))
 
     # Only use cycles up to saturation for constant amplitude tests
     # Constant amplitude if ind_2prct=None and many peaks found
@@ -90,7 +91,6 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     # Combine the points, remove any points that lie between the removal ranges
     ind_final = ind_ss + ind_downsampler
     ind_final = apply_removal_ranges(ind_final, removal_ranges)
-    # Remove any duplicates and sort
     ind_final = sorted(list(set(ind_final)))
 
     # Keep extra points in initial elastic region
