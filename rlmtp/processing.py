@@ -120,12 +120,13 @@ def generate_output(data, output_dir, pre_name):
     return
 
 
-def process_specimen_data(input_dir, output_dir, should_downsample=True):
+def process_specimen_data(input_dir, output_dir, should_downsample=True, force_global_downsample=True):
     """ Generates the final .csv output and plots the relevant data.
 
     :param str input_dir: Specimen directory containing the data.
     :param str output_dir: Directory where the output will be saved.
     :param bool should_downsample: If False, then do not downsample.
+    :param bool force_global_downsample: If True, then uses the global downsamping method.
     :return pd.DataFrame: Contains all the processed, downsampled data collected by the function.
 
     Notes:
@@ -165,6 +166,7 @@ def process_specimen_data(input_dir, output_dir, should_downsample=True):
         final_data.index = final_data.index.astype('int64')
         # Do the downsampling
         downsample_params = all_data['downsampling']
+        downsample_params['use_local_error'] = not force_global_downsample
         if not should_downsample:
             print('Skipping downsampling...')
         else:

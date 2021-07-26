@@ -354,9 +354,12 @@ def read_downsample_props(fpath):
     :return dict: Parsed properties.
     """
     # To sanitize inputs
-    type_map = {'max_dev_tol': float, 'last_ind': int, 'removal_range': int, 'n_elastic_region': int,
+    type_map = {'use_local_error': bool, 'downsample_tol': float,
+                'last_ind': int, 'removal_range': int, 'n_elastic_region': int,
                 'apply_filter': bool, 'wl_base_factor': int, 'wl_2prct_factor': int,
-                'sat_tol': float, 'f_yn': float, 'use_midpoint_method': bool}
+                'sat_tol': float, 'f_yn': float}
+    # Deprecated parameters for the old downsampling method
+    old_parameters = ['max_dev_tol', 'use_midpoint_method']
 
     def sani(x, p):
         if p in type_map:
@@ -375,6 +378,8 @@ def read_downsample_props(fpath):
             # Put all the remove ranges together
             ls2 = ls[1].split(':')
             rr.append([sani(ls2[0], p), sani(ls2[1], p)])
+        elif p in old_parameters:
+            print('Deprecated downsample parameter "{0}"; neglecting this parameter.'.format(p))
         else:
             properties[p] = sani(ls[1].strip(), p)
         properties['removal_ranges'] = rr
