@@ -170,7 +170,7 @@ def process_specimen_data(input_dir, output_dir, should_downsample=True, force_g
         if 'use_local_error' not in downsample_params:
             if force_global_downsample:
                 downsample_params['use_local_error'] = False
-                downsample_params['dowsample_tol'] = 0.005
+                downsample_params['downsample_tol'] = 0.005
             else:
                 # Use default params
                 pass
