@@ -10,6 +10,7 @@
 \PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
 \usepackage{physics}
 \usepackage{cleveref}
+\usepackage{natbib}
 
 \title{Efficiently downsampling inelastic cyclic stress-strain data while preserving its curvature}
 \author{A Hartloper}
@@ -18,7 +19,11 @@
 \maketitle
 
 \begin{abstract}
-    A downsampling algorithm for stress-strain data that uses few points but retains curvature within a pre-defined tolerance is developed in this document.
+    A downsampling method for stress-strain data that uses few points to preserve curvature within a pre-defined tolerance is proposed in this document.
+    This method is built on existing downsampling algorithms originally developed for cartographic applications.
+    The proposed method is extended to preserve the difference in energy between the original and downsampled data.
+    Results from two datasets indicate that, with around 0.5~\% difference in energy, the downsampled data has 50--90 times less points.
+    The proposed method leads to 2--5 times less points than the previous integer reduction downsampling method, and also appears to give a better representation of the stress-strain data.
 \end{abstract}
 
 \section{Introduction}
@@ -56,15 +61,14 @@ There are several areas to improve this method that lead to this study.
 
 The initial inspiration for improvement was this blog\footnote{\label{fn:blog}\url{https://kaushikghose.wordpress.com/2017/11/25/adaptively-downsampling-a-curve/}. \hfill}.
 Then I found a wealth of literature, particularly in the domain of cartography.
-Two subproblems are defined in the literature: the min-\# problem and the min-$\epsilon$ problem.
-The objective of the first problem is to determined the minimum number of sample points to provide a reasonably good approximation of the curve, the second is to find the minimum error between the original and sampled curves for a given number of points [ref imai+iri].
+Two subproblems are defined in the literature \citep{ImaiPolygonalApproximationsCurve1988}: the min-\# problem and the min-$\epsilon$ problem.
+The objective of the first problem is to determined the minimum number of sample points to provide a reasonably good approximation of the curve, the second is to find the minimum error between the original and sampled curves for a given number of points.
 In the first, an error critieria is specified ($\epsilon$), and in the second the number of points is specified ($N$).
-Many approximate solutions exist [RDP + survey] as well as optimal ones [imai and chan+chin, perez+vidal]
-The optimal solution to the first problem is easier (takes less computational effort) than the second one by a factor of $\log N$ [ref chan 
-chin].
+Many approximate solutions exist \citep{Rameriterativeprocedurepolygonal1972,DouglasAlgorithmsreductionnumber1973,HeckbertSurveyPolygonalSurface1997} as well as optimal ones \citep{ImaiPolygonalApproximationsCurve1988,PerezOptimumpolygonalapproximation1994,ChanApproximationPolygonalCurves1996}.
+The optimal solution to the first problem is easier (takes less computational effort) than the second one by a factor of $\log N$ \citep{ChanApproximationPolygonalCurves1996}.
 I have focused on applications of approximate solutions to the min-\# problem.
 
-The most popular algorithm to determine an approximate solution to the min-\# problem appears to be the Ramer–Douglas–Peucker (RDP) algorithm [ref rdp + survey].
+The most popular algorithm to determine an approximate solution to the min-\# problem appears to be the Ramer–Douglas–Peucker (RDP) algorithm \citep{Rameriterativeprocedurepolygonal1972,DouglasAlgorithmsreductionnumber1973,HeckbertSurveyPolygonalSurface1997}.
 The RDP algorithm is not optimal and only finds a number of points $N$ close to the minimum.
 A number of additional points are certain to be added due to the criteria of selecting sample points.
 I.e., as the point at maximum perpendicular distance to the line between first and last points.
@@ -72,17 +76,21 @@ This heuristic makes sense for graphs that are not ``cyclic''.
 However, the RDP algorithm is still quite good, comparatively fast, and has been widely implemented.
 Excellent visualizations of the RDP algorithm can be found\footnote{\url{https://karthaus.nl/rdp/}}.
 
-\section{Proposed procedure}
+The aim in this document is to use these established downsampling techniques to improve upon my existing integer reduction method.
+Ideally, the proposed method will be able to satisfy the desirable criteria set forth above.
+The following sections outline the development process and the evaluation of the proposed method.
 
-The proposed algorithm is composed of three parts.
-The first part is to find the peaks in the stress-strain data.
-The second part is to downsample the entire stress-strain history based on the curvature of the stress-strain data.
-The third part is to keep additional points in the initial elastic region.
+\section{Proposed method}
+
+The proposed method is composed of two main parts and two auxiliary parts.
+The first main part is to find the peaks in the stress-strain data.
+The second main part is to downsample the entire stress-strain history based on its curvature.
+The auxiliary parts are to keep additional points in the initial elastic region and remove cycles after saturation in constant amplitude tests.
 The final downsampled data is the unique set combining all three parts.
 
-Mosts of the heavy lifting is done in the second part.
-The first part is essential to overcome \emph{aliasing} in the sampled data and determine properties such as the number of cycles.
-The third part is essential to ensure fidelity of the initial elastic region.
+Mosts of the heavy lifting is done in the second main part.
+The first main part is essential to overcome \emph{aliasing} in the sampled data and determine properties such as the number of cycles.
+The auxiliary parts ensure fidelity of the initial elastic region and remove data that does not contribute much to the material behavior.
 Details are given for each part and a summary of the entire procedure is given afterwards.
 
 \subsection{Identifying peaks in the stress-strain graph}
@@ -174,7 +182,7 @@ The RDP algorithm starts with $i = 0$ and $j = N-1$, then the first sample point
 This bisects the overall curve, and each section is sampled recursively until the maximum deviation is lower than the tolerance in all sections.
 Notice that several points are ``skipped'' in the regions of low curvature, while the density of points sampled increases in the curved regions.
 The same need for normalization and sensitivity to noise exist in the RDP algorithm as in the maximum deviation downsampler.
-Therefore, the stress-signal is filtered prior then normalized by the ranges in stress/strain prior to applying the RDP algorithm.
+Therefore, the stress signal is filtered, then the stress-strain is normalized prior to applying the RDP algorithm.
 
 
 \begin{figure}
@@ -196,7 +204,7 @@ where $E_{orig}$ is the total accumulated squared strain energy in the original 
 Linear interpolation is used to compute the downsampled data at each point between the sampled points, and the integrals are computed using the trapezoidal rule.
 
 An algorithm to keep the error metric below a global tolerance, $\epsilon_g$ is provided in Algorithm~\ref{alg:global-err-downsampling}.
-The idea is to select an initial (``large'') local tolerance, $\epsilon$.
+The idea is to select an initial (``large'') local tolerance, $\epsilon_0$.
 Then reduce the local tolerance and re-run the downsampling until $\bar{\varphi} < \epsilon_{g}$.
 This always converges because the error is zero at the limit of sampling all the points.
 This procedure is made accessible by the highly efficient implementation of the RDP algorithm in the Python package \texttt{polyprox}, however, the same process can be applied using other downsampling methods with a bit of time.
@@ -254,7 +262,7 @@ The minimum number of cycles to include, $n_{cyc}$, is also specified.
 \subsection{Overall procedure}
 
 The overall procedure is summarized in Algorithm~\ref{alg:overall-summary}.
-The procedure consists of parts 1, 2, and~3 outlined earlier, with the incorporation of cycle cutting after saturation in constant amplitude tests.
+The procedure consists of the two main and auxillary parts outlined earlier.
 The original stress-strain data input to the procedure is $X = \{x_i \}_{i=0}^{N-1}$.
 Algorithm~\ref{alg:overall-summary} produces a set of indices, $k_{sample}$.
 The downsampled stress-strain data is $X_{ds} = \{ x_i \mid i \in k_{sample} \}$.
@@ -274,14 +282,14 @@ I recommend using the following input parameters in Algorithm~\ref{alg:overall-s
     \item $p = 1$
     \item $n_{elastic} = 7$
 \end{itemize}
-The parameter $\eta = 0.99$ was selected as being close to 1.0 and $n_{cyc} = 20$ was selected from [ref albano] because at least 20 cycles are indicated.
+The parameter $\eta = 0.99$ was selected as being close to 1.0 and $n_{cyc} = 20$ was selected from \citet{deCastroeSousaConsistencySolvingInverse2020} because at least 20 cycles are indicated.
 Two window lengths are required for pre- and post-2~\% strain due to the different strain rates.
 A value of $w = 5$ provides a weighted average of $\pm2$ points, and $\alpha = 11$ was selected because, even though the strain rate is around 26 times lower, the window length lead to too much aliasing in the pre-2~\% region with larger values.
 Linear interpolation ($p = 1$) is recommended because it is most effective at reducing the noise.
 The trade-off is that linear interpolation increase aliasing around peaks, however, the peaks are already included in part~1.
 Seven additional points are added to the initial elastic region to give nine points total (seven + start + upper yield).
 This should give 4--5 points in the $0.65 f_{yn}$ region used to compute the initial elastic modulus.
-The basis for $\epsilon$ recommendations will be shown through later examples.
+The $\epsilon, \epsilon_g$ recommendations were selected through trial and error to see when the stress-strain graphs became visually similar.
 
 
 \begin{algorithm}
@@ -316,17 +324,21 @@ The basis for $\epsilon$ recommendations will be shown through later examples.
 
 \section{Results}
 
-The results shown in this section were computed using the recommended parameters.
-Typical results are shown in Figure~\ref{fig:hem320-lp8-results}.
+Detailed results from the HEM320 web and S235/275 15~mm plate datasets are provided in this section to comment on certain aspects of downsampling stress-strain data.
+The results shown in this section were computed using the recommended parameters for the global-error downsampling method.
+Typical downsampled results are compared with original data in Figure~\ref{fig:sampled-compare-dots}.
 
-% todo: finish results
+The error metrics for the ten load protocols and reduction factors are provided in Figure~\ref{fig:error-and-reduction}.
+The error metric, $\bar{\varphi}$, is computed using the proposed method.
+The average value for the HEM320 web dataset is 0.514~\% and for the S235/275 dataset is 0.558~\%.
+The error metric is not computed for the integer reduction method because I did not save the indices.
+A more detailed comparison of the different methods in terms of resulting stress-strain is provided for one example in Figure~\ref{fig:hem320-lp8-compare-methods}.
 
-Savings vs original data
-S235/275 Plate 15       75.826747
-HEM320 web    90.042243
-Savings vs old method
-S235/275 Plate 15       1.409398
-HEM320 web    2.897669
+The reduction factors are the number of points in the original divided by the number of samples in the downsampled data.
+Reduction factors are provided for the proposed (New) and integer reduction (Old) downsampling methods.
+The values are not computed for the old method in LPs 4 and~5 because cycle cutting is not employed.
+The total number of data points for all LPs are reduced by 75.8 times for the HEM320 web and 90.0 times for the S235/275.
+Neglecting LPs 4 and 5, the new method reduces the total number of data points by 2.6 times compared to the old method for the HEM320 web and 5.7 times for the S235/275.
 
 
 \begin{figure}
@@ -334,24 +346,17 @@ HEM320 web    2.897669
     \begin{subfigure}[b]{0.49\linewidth}
         \centering
         \includegraphics{LP8_dots_WP3_HEM320_C_CRM20.pdf}
-        \caption{HEM320 web dataset}
+        \caption{HEM320 web}
         \label{fig:hem320-lp8-results}
     \end{subfigure}
     \begin{subfigure}[b]{0.49\linewidth}
         \centering
         \includegraphics{LP8_dots_S235275_Plate15.pdf}
-        \caption{S235/275 15~mm plate dataset}
+        \caption{S235/275 15~mm plate}
         \label{fig:s235275-lp8-results}
     \end{subfigure}
-    \caption{Sampled points in LP8 from datasets. Line = test data, dots = sampled points.}
-\end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics{LP8_WP3_HEM320_C_CRM20.pdf}
-    \caption{HEM320 web dataset}
-    \label{fig:hem320-lp8-compare-methods}
-    \caption{Comparison of proposed (New) and integer reduction (Old) methods of downsampling.}
+    \caption{Sampled points in LP8 from datasets. Line is the original data, dots are the sampled points using the proposed method.}
+    \label{fig:sampled-compare-dots}
 \end{figure}
 
 
@@ -383,32 +388,60 @@ HEM320 web    2.897669
         \label{fig:s235275-reduction}
     \end{subfigure}
     \caption{Error and Reduction factors between original and downsampled data. New is the proposed method, Old is the integer factor downsampling.}
+    \label{fig:error-and-reduction}
 \end{figure}
 
+
+\begin{figure}
+    \centering
+    \includegraphics{LP8_WP3_HEM320_C_CRM20.pdf}
+    \caption{Comparison of different methods for downsampling LP8 in the HEM320 web dataset. New is the proposed method, Old is the integer factor downsampling.}
+    \label{fig:hem320-lp8-compare-methods}
+\end{figure}
+
+
 \section{Discussion}
+
+\subsection{Evaluation of results}
+
+Figure~\ref{fig:sampled-compare-dots} shows that the sampled points tend to be concentrated in the regions of high curvature and the initial elastic region.
+Additionally, the peaks of the stress-strain graph are all sampled.
+Using the global method, the procedure is straightforward and interpretable.
+Figures~\ref{fig:hem320-error} and~\ref{fig:s235275-error} show that the error with the global method is around 0.5~\%.
+At this level of error, the data is reduced by between 50--90 times compared to the original.
+
+The main strength of the global error method is its reliability.
+For example, the old method does not sample the curved parts of the graph in Figure~\ref{fig:hem320-lp8-compare-methods} as well as the new method.
+This is despite having multiple times more points for the same graph (see Figure~\ref{fig:hem320-reduction}).
+Another strength of the RDP method is that it is strain rate independent because it is based on the curvature of the data and will sample points appropriately.
+
+The main difficultly in the proposed downsampling method comes with the choice of filtering parameters.
+The recommended parameters appear to work well as long as the standard load protocols are followed, however, different values are certainly required for different strain and sampling rates.
+My implementation of Algorithm~\ref{alg:overall-summary} in \texttt{rlmtp} (RESSLab Material Test Processing) uses the default values set forth above, and also allows users to modify all of these parameters.
+The desired parameters for tests that do not follow the standard load protocols can be saved in a file and read by the algorithm when the downsampling occurs.
 
 \subsection{Choice of algorithm}
 
 The choice between the maximum deviation downsampler and RDP algorithms is discussed in this section.
 The max deviation downsampler is not recommended for two reasons:
-(i) the implementation is not optimal in that it does not guarantee the maximum perpendicular distance is always less than the minimum, and (ii) my implementation in Python is slow compared to the RDP algorithm in \texttt{polyprox}.
+(i) it has higher errors because it does not guarantee the maximum perpendicular distance is always less than the tolerance, and (ii) my implementation in Python is slow compared to the RDP algorithm in \texttt{polyprox}.
 The first issue being more critical, of course.
 The first issue is rooted in the nature of our data having many inflection points.
 With multiple inflection points, although $d^{(k)}_{ij} < \epsilon$, there may be some $d^{(l)}_{mj} > \epsilon$ with $m > i$ and $m < l < j$.
-Therefore, ``stepping forward'' as in the maximum deviation downsampler is not a good strategy to ensure that the maximum perpendicular distance is less than $\epsilon$.
-This makes the second issue not worth solving.
+Therefore, ``stepping forward'', as in the maximum deviation downsampler, is not as good strategy of a strategy as used in the RDP algorithm.
+This makes the second issue not worth investigating.
 
 With regards to the RDP algorithm, the cyclic nature of our stress-strain data implies that selecting the start and end points, then sampling the maximum perpendicular distance between these, is not a great heuristic.
 See Figure~\ref{fig:rdp-algo}.
 This is because the maximum perpendicular distance from the line linking the start and end points is not necessarily at a region of high curvature.
 However, the RDP algorithm is not optimal in producing the minimum number of points, but it will be on the ``safe side'' of adding a few additional points to get the job done.
-The results could be more efficient (i.e., satisfy the local $\epsilon$ criteria with less points) by using an optimal solution from [ref chan chin].
+The results could be more efficient (i.e., satisfy the local $\epsilon$ criteria with less points) by using an optimal solution from \citet{ChanApproximationPolygonalCurves1996}.
 
 \subsection{Different distance measures}
 
-As outlined, a challenge in the max deviation downsampler is the difference in units between stress and strain.
-I propose to re-scale the stress-strain data to then use a basic 2-norm when computing the perpendicular distance.
-Two options that could be used rather than rescaling the data are:
+A challenge in the max deviation downsampler and RDP methods is the difference in units between stress and strain.
+I currently overcome this challenge by re-scaling the stress-strain data, then using the 2-norm when computing the perpendicular distance.
+Options that could be used rather than rescaling the data are:
 \begin{enumerate}
     \item use the angle between the line and each point,
     \item use the norm induced by an alternative inner product: $\norm{d_k}_S = \sqrt{d_k \cdot S \cdot d_k}$, and
@@ -465,6 +498,25 @@ Considering higher dimensions may be useful, for instance:
 
 \section{Conclusion}
 
+Integer reduction downsampling is not efficient for the stress-strain data that we collect for material tests.
+A better downsampling procedure was proposed consisting of two main steps and two auxiliary steps.
+The main steps are (i) to determine the peaks of the stress-strain graph and (ii) to then use a downsampling algorithm that preserves the curvature in the stress-strain graph.
+The maximum deviation downsampler and Ramer–Douglas–Peucker (RDP) algorithms were considered in (ii).
+A global-error preserving method was proposed because these algorithms operate on a local criterion.
+The auxillary steps are to add points to the initial elastic region and to remove cycles after saturation of cyclic hardening in constant amplitude tests.
+Heuristic parameters applicable to tests carried out according to the standard load protocols were provided.
+Results from two datasets were provided to indicate the performance of the proposed method.
+The main conclusions are:
+\begin{itemize}
+    \item Re-scaling the stress and strain signals prior to downsampling is suggested to mimic the geometric notion of curvature in stress-strain graphs. A scaled distance could be computed instead, however, this seems to be more complicated than just scaling the data. An acceptable local error, $\epsilon$, has to be selected regardless of this choice.
+    \item The RDP algorithm is better than the maximum deviation downsampler because it is more strict in enforcing the local tolerance and it is faster.
+    \item The RDP algorithm leads to satisfactory results as a curvature-preserving downsampler. It is not the optimal solution to the min-\# problem and results may be slightly improved with an optimal algorithm.
+    \item Filtering the stress signal is necessary to get the best performance out of downsamplers, however, this adds a complication regarding the selection of filter parameters.
+    \item Using the proposed method, the number of data points is reduced by one to two orders of magnitude based on the examined datasets. This reduction was around 2--5 times better than the integer reduction method. The proposed method appears to provide to a better representation of stress-strain data with fewer points.
+\end{itemize}
 
+
+\bibliographystyle{unsrtnat}
+\bibliography{ds_references}
 
 \end{document}
