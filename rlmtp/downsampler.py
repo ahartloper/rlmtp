@@ -362,6 +362,9 @@ def read_downsample_props(fpath):
     old_parameters = ['max_dev_tol', 'use_midpoint_method']
 
     def sani(x, p):
+        if x == 'None':
+            # Some parameters use None or their type
+            return None
         if p in type_map:
             return type_map[p](x)
         else:

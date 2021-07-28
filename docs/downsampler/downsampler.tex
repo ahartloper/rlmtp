@@ -19,11 +19,11 @@
 \maketitle
 
 \begin{abstract}
-    A downsampling method for stress-strain data that uses few points to preserve curvature within a pre-defined tolerance is proposed in this document.
-    This method is built on existing downsampling algorithms originally developed for cartographic applications.
-    The proposed method is extended to preserve the difference in energy between the original and downsampled data.
+    A downsampling method for stress-strain data that uses few points to preserve curvature is proposed in this document.
+    This method uses existing algorithms that satisfy a local curvature criterion within a pre-defined tolerance.
+    The proposed method is then extended to preserve the global difference in energy between the original and downsampled data.
     Results from two datasets indicate that, with around 0.5~\% difference in energy, the downsampled data has 50--90 times less points.
-    The proposed method leads to 2--5 times less points than the previous integer reduction downsampling method, and also appears to give a better representation of the stress-strain data.
+    The proposed method leads to 2--5 times less points than the previous integer reduction downsampling method and also appears to give a better representation of the stress-strain data.
 \end{abstract}
 
 \section{Introduction}
@@ -109,16 +109,16 @@ If there is no upper yield point (due to the material or imperfections in the sp
 Another important point in stress-strain data tested according to the RESSLab protocols is the first instance 2~\% strain amplitude is crossed.
 This point is important because the strain rate changes by a factor of around 30 at this point.
 Therefore, this point is identified as well.
-The final point of importance is the final point.
+A final point is also identified.
 Unless otherwise specified (i.e., due to buckling), the final point is selected at 12.5~\% strain due to limitations in the small extensometer used for M8 experiments, or the last point in the history if 12.5~\% strain is never obtained.
-Any points past the final point are neglected.
+Any data past the final point are neglected.
 
 To summarize, the sampled points from the first part are:
 \begin{itemize}
     \item the upper yield point (or 0.2~\% offset yield stress point),
     \item the point where 2~\% strain amplitude is crossed (not applicable for LPs~4 and~5),
     \item the peaks in the stress-strain graph, and
-    \item the final strain point.
+    \item the final point.
 \end{itemize}
 
 \subsection{Curvature-preserving downsampling}
@@ -499,7 +499,7 @@ Considering higher dimensions may be useful, for instance:
 \section{Conclusion}
 
 Integer reduction downsampling is not efficient for the stress-strain data that we collect for material tests.
-A better downsampling procedure was proposed consisting of two main steps and two auxiliary steps.
+A better downsampling procedure was proposed in Algorithm~\ref{alg:overall-summary} consisting of two main steps and two auxiliary steps.
 The main steps are (i) to determine the peaks of the stress-strain graph and (ii) to then use a downsampling algorithm that preserves the curvature in the stress-strain graph.
 The maximum deviation downsampler and Ramer–Douglas–Peucker (RDP) algorithms were considered in (ii).
 A global-error preserving method was proposed because these algorithms operate on a local criterion.
