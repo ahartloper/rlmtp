@@ -2,7 +2,6 @@
 Function to downsample stress-strain data.
 """
 import numpy as np
-from numpy.lib.polynomial import poly
 from scipy.signal import savgol_filter
 import polyprox
 from .find_peaks import find_peaks, find_peaks2
@@ -24,8 +23,9 @@ def downsample_data(data, params):
 
 
 def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind=None, removal_ranges=[],
-                      n_elastic_region=7, apply_filter=True, wl_base_factor=5, wl_2prct_factor=11,
-                      sat_tol=0.99, n_cycles_min=20, f_yn=345.0):
+                      n_elastic_region=7, f_yn=345.0,
+                      apply_filter=True, wl_base_factor=5, wl_2prct_factor=11,
+                      cut_sat_cycles=False, sat_tol=0.99, n_cycles_min=20):
     """ Returns the indices of data to keep.
     :param data pd.DataFrame: Contains the true stress-strain data.
     :param use_local_error bool: If True, then downsample_tol is applied to the local criteria.
@@ -34,14 +34,13 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     :param last_ind int: Last index to keep in the data.
     :param removal_ranges list: (list) Each list specifies ranges of indices to remove.
     :param n_elastic_region int: Number of extra points to keep in the initial elastic range.
+    :param f_yn float: Nominal yield stress.
     :param apply_filter bool: If True, filter the stress data before downsampling.
     :param wl_base_factor int: Windowlength for the stress filter after 2% strain.
     :param wl_2prct_factor int: Windowlength multiplier for the stress filter before 2% strain.
+    :param cut_sat_cycles bool: If True, then cut cycles after saturation in constant amplitude loading.
     :param sat_tol float: Proportion of maximum stress to consider saturated under constant amplitude loading.
-                          0.0 < sat_tol <= 1.0. Set sat_tol=None to disable cycle cutting.
     :param n_cycles_min int: Minimum number of cycles to use in constant amplitude tests.
-                             Only applies if sat_tol is not None.
-    :param f_yn float: Nominal yield stress.
     :return list: Indices in data to keep.
 
     Notes:
@@ -64,8 +63,8 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
         noise in the stress data. See rlmtp.downsampler.filter_stress for details on the stresss filter.
         - wl_base_factor and wl_2prct_factor are parameters of the stress filter.
         - Cycle cutting with sat_tol takes cycles up to and including when stress > sat_tol*max(stress)
-          and stress < sat_tol*min(stress). This assumes a cyclic hardening behavior and should be
-          disabled for cycling softening by using sat_tol=None.
+          and stress < sat_tol*min(stress). This assumes a cyclic hardening behavior
+        - The value of sat_tol should be: 0.0 < sat_tol <= 1.0.
     """
     # Obtain the "peaks" in the stress-strain data
     ind_ss, ind_2prct = stress_strain_peaks(data, last_ind=last_ind, f_yn=f_yn)
@@ -75,7 +74,7 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     # Only use cycles up to saturation for constant amplitude tests
     # Constant amplitude if ind_2prct=None and many peaks found
     large_num_cycles = 55
-    if ind_2prct is None and len(ind_ss) > large_num_cycles and sat_tol is not None:
+    if ind_2prct is None and len(ind_ss) > large_num_cycles and cut_sat_cycles:
         ind_ss = keep_upto_saturation(data, ind_ss, sat_tol=sat_tol, n_cycles_min=n_cycles_min)
 
     # Run max deviation downsampler
@@ -102,9 +101,11 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
 
 def scale_data(d):
     """ Scale the x,y to have unit max length in both axes. """
-    d[:, 0] = d[:, 0] / (d[:, 0].max() - d[:, 0].min())
-    d[:, 1] = d[:, 1] / (d[:, 1].max() - d[:, 1].min())
-    return d
+    e_range = d[:, 0].max() - d[:, 0].min()
+    s_range = d[:, 1].max() - d[:, 1].min()
+    d[:, 0] = d[:, 0] / e_range
+    d[:, 1] = d[:, 1] / s_range
+    return d, e_range, s_range
 
 
 def apply_downsampler(d, last_ind, tol):
@@ -114,7 +115,7 @@ def apply_downsampler(d, last_ind, tol):
     :param tol float: Threshold to use in the downsampler.
     :return list: Indices to keep.
     """
-    d = scale_data(d)
+    d, _, _ = scale_data(d)
     # Only use the data up to the last index from the stress-strain peaks
     d = d[0:last_ind+1, :]
     # ind_ds = max_deviation_downsampler(d, tol)
@@ -295,13 +296,16 @@ def stress_strain_peaks(d, last_ind=None, f_yn=345.0):
     return i_final, i_2prct
 
 
-def downsample_error(d, ind, removal_ranges=[]):
+def downsample_error(d, ind, removal_ranges=[], e_scale=1.0, s_scale=1.0):
     """ Returns the accumulated relative energy error between the original and downsampled data. """
     # Remove any data in removal ranges so compute correct error
     if len(removal_ranges) > 0:
         remove_ind = []
         remove_ind = [remove_ind + range(r[0]+1, r[1]) for r in removal_ranges]
-        d = np.delete(d, remove_ind, axis=0)
+        d2 = np.delete(d, remove_ind, axis=0)
+    # Scale the data
+    d2[:, 0] = d2[:, 0] * e_scale
+    d2[:, 1] = d2[:, 1] * s_scale
     # Compute error
     x = np.array([0.0] + list(np.cumsum(np.abs(np.diff(d[:ind[-1] + 1, 0])))))
     y = d[:ind[-1] + 1, 1]
@@ -391,18 +395,18 @@ def read_downsample_props(fpath):
 
 def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=10, removal_ranges=[]):
     """ Runs downsampler until a global tolerance is reached. """
-    d = scale_data(d)
+    d, e_range, s_range = scale_data(d)
     # Only use the data up to the last index from the stress-strain peaks
     d = d[0:last_ind+1, :]
     ds_tol = local_tol_0
     e = 10 * global_tol
     it = 0
+    # 1.05 below to force a continued reduction near global_tol = e
     convergence_factor = 1.05
     while e > global_tol and it < max_its:
         ind = polyprox.min_num(d, epsilon=ds_tol, return_index=True)
-        e = downsample_error(d, ind, removal_ranges)
+        e = downsample_error(d, ind, removal_ranges, e_range, s_range)
         print('Current error = {0:0.1%}, # points = {1}, current tol = {2:0.3e}'.format(e, len(ind), ds_tol))
-        # 1.05 below to force a continued reduction near global_tol = e
         ds_tol *= (global_tol / e / convergence_factor)
         it += 1
 
