@@ -303,6 +303,8 @@ def downsample_error(d, ind, removal_ranges=[], e_scale=1.0, s_scale=1.0):
         remove_ind = []
         remove_ind = [remove_ind + range(r[0]+1, r[1]) for r in removal_ranges]
         d2 = np.delete(d, remove_ind, axis=0)
+    else:
+        d2 = d.copy()
     # Scale the data
     d2[:, 0] = d2[:, 0] * e_scale
     d2[:, 1] = d2[:, 1] * s_scale
