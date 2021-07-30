@@ -24,7 +24,7 @@ def downsample_data(data, params):
 
 def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind=None, removal_ranges=[],
                       n_elastic_region=7, f_yn=345.0,
-                      apply_filter=True, wl_base_factor=5, wl_2prct_factor=11,
+                      apply_filter=True, wl_base_value=5, wl_2prct_factor=1, polyorder=1,
                       cut_sat_cycles=False, sat_tol=0.99, n_cycles_min=20):
     """ Returns the indices of data to keep.
     :param data pd.DataFrame: Contains the true stress-strain data.
@@ -36,8 +36,9 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     :param n_elastic_region int: Number of extra points to keep in the initial elastic range.
     :param f_yn float: Nominal yield stress.
     :param apply_filter bool: If True, filter the stress data before downsampling.
-    :param wl_base_factor int: Windowlength for the stress filter after 2% strain.
-    :param wl_2prct_factor int: Windowlength multiplier for the stress filter before 2% strain.
+    :param wl_base_value int: Window length for the stress filter after 2% strain.
+    :param wl_2prct_factor int: Window length multiplier for the stress filter before 2% strain.
+    :param polyorder int: Polynominal interpolation order to use in the stress filter.
     :param cut_sat_cycles bool: If True, then cut cycles after saturation in constant amplitude loading.
     :param sat_tol float: Proportion of maximum stress to consider saturated under constant amplitude loading.
     :param n_cycles_min int: Minimum number of cycles to use in constant amplitude tests.
@@ -81,7 +82,8 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     # Remove noise in the stress with a moving average filter
     d = np.array(data[['e_true', 'Sigma_true']])
     if apply_filter:
-        d[:, 1] = filter_stress(d, ind_2prct, wl_base=wl_base_factor, wl_factor=wl_2prct_factor)
+        d[:, 1] = filter_stress(d, ind_2prct, wl_base=wl_base_value, wl_factor=wl_2prct_factor,
+                                poly_order=polyorder)
     if use_local_error:
         ind_downsampler = apply_downsampler(d, ind_ss[-1], downsample_tol)
     else:

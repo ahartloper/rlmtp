@@ -29,7 +29,7 @@
 
 \section{Introduction}
 
-The raw data (i.e., extensometer displacement, load cell force) in experiments used for material model calibration are typically sampled at 10~Hz in the EPFL test setup.
+The raw data (i.e., extensometer displacement, load cell force) in experiments used for material model calibration are typically sampled at 20~Hz in the EPFL test setup.
 As experiments range from around a few minutes (e.g., LP1) to hours (LP5), this results in thousands to hundreds of thousands of data points for each experiment.
 However, the sampled data is often denser than required to reasonably describe the stress-strain behavior of materials under the applied strain rates.
 When it comes to calibrating material models, the time required is proportional to the number of data points.
@@ -281,7 +281,7 @@ I recommend using the following input parameters in Algorithm~\ref{alg:overall-s
     \item if local method: $\epsilon = 0.001$
     \item if global method: $\epsilon_0 = 0.1$, $\epsilon_g = 0.005$
     \item $w = 5$
-    \item $\alpha = 11$
+    \item $\alpha = 1$
     \item $p = 1$
     \item $n_{elastic} = 7$
 \end{itemize}
@@ -307,7 +307,7 @@ The $\epsilon, \epsilon_g$ recommendations were selected through trial and error
 
         \State Compute the initial elastic modulus and initial 0.2~\% offset yield stress using the nominal yield stress, $f_{yn}$
         \State $k_{1} \gets $ indices of the peaks in the stress-strain graph
-        \If{constant amplitude loading}
+        \If{constant amplitude loading \textbf{and} want to cut cycles}
             \State Determine $n_{sat}$ cycles to reach $\sigma_i > \eta \cdot \max \sigma$ and $\sigma_i < \eta \cdot \min \sigma$
             \If{$n_{sat} < n_{cyc}$}
                 \State $n_{sat} \gets n_{cyc}$
@@ -326,6 +326,52 @@ The $\epsilon, \epsilon_g$ recommendations were selected through trial and error
 
 
 \section{Results}
+
+\subsection{Different filtering parameters}
+
+Three options are evaluated: (1) $w = 5, \alpha = 11$, (2) no filtering, (3) $w = 5, \alpha = 1$.
+Across all 16 datasets, the average total number of points in each dataset with downsampling are: 5340, 8830, 5574.
+Relative to Option~1, this is a 1.65 and 1.04 times increase in the number of points for Options~2 and~3, respectively.
+Option~1 is leads to lower number of points for all the load protocols compared to Option~3, except for LPs~4 and~5 (constant amplitude).
+Detailed results are shown for LP6 from the IPE360 web dataset in Figures~\ref{fig:filtering-compare-dots} and~\ref{fig:filtering-compare-downsampled}.
+For this particular case, the number of points in the original data is 17259, the number of points for Option~1 is 358, for Option~2 is 2465, and for Option~3 is 633.
+
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.49\linewidth}
+        \centering
+        \includegraphics{LP6_dots_WP3_IPE360_C_CRM8_nodots_.pdf}
+        \caption{Original}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.49\linewidth}
+        \centering
+        \includegraphics{LP6_dots_WP3_IPE360_C_CRM8_op1_.pdf}
+        \caption{Option 1}
+    \end{subfigure}
+
+    \begin{subfigure}[b]{0.49\linewidth}
+        \centering
+        \includegraphics{LP6_dots_WP3_IPE360_C_CRM8_op2_.pdf}
+        \caption{Option 2}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.49\linewidth}
+        \centering
+        \includegraphics{LP6_dots_WP3_IPE360_C_CRM8_op3_.pdf}
+        \caption{Option 3}
+    \end{subfigure}
+    \caption{Zoom on the positive quadrant of LP6 from the IPE360 web dataset. Line is the original data, dots are the sampled points using the different filtering options.}
+    \label{fig:filtering-compare-dots}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics{LP6_downsampled_WP3_IPE360_C_CRM8_op3_.pdf}
+    \caption{LP6 from the IPE360 web dataset downsampled (black line) with filtering from Option~3.}
+    \label{fig:filtering-compare-downsampled}
+\end{figure}
+
+\subsection{Detailed results}
 
 Detailed results from the HEM320 web and S235/275 15~mm plate datasets are provided in this section to comment on certain aspects of downsampling stress-strain data.
 The results shown in this section were computed using the recommended parameters for the global-error downsampling method using the RDP algorithm.
@@ -413,6 +459,13 @@ Additionally, the peaks of the stress-strain graph are all sampled.
 Using the global method, the procedure is straightforward and interpretable.
 Figures~\ref{fig:hem320-error} and~\ref{fig:s235275-error} show that the error with the global method is around 0.5~\%.
 At this level of error, the data is reduced by between 50--90 times compared to the original.
+
+First, the oscillations in the stress signal are sampled when no filtering is applied, resulting in 1.65 times as many sample points compared to $w = 5, \alpha=11$ option.
+This result indicates that filtering the stress signal is important to reducing the number of sample points, although some sampling of the oscillations still occurs as shown in Figures~\ref{fig:filtering-compare-dots} and~\ref{fig:filtering-compare-downsampled}.
+Second, there is a 5~\% increase in the number of points when the window length is always equal to 5 throughout.
+Moreover, for LPs~4 and~5, $w = 5, \alpha=11$ is too large of a window length and leads to additional sample points.
+Therefore, I recommend to use the simpler option which is to use $w = 5, \alpha=1$.
+Recall that the filtering only affects the shape of the signal used for the selection of sample points via the RDP algorithm.
 
 The main strengths of the global error method are its reliability and its relation to the inverse problem in \citet{deCastroeSousaConsistencySolvingInverse2020}.
 For example, the old method does not sample the curved parts of the graph in Figure~\ref{fig:hem320-lp8-compare-methods} as well as the new method.
@@ -506,7 +559,6 @@ Considering higher dimensions may be useful, for instance:
     \item when downsampling data considering multiple components of the stress-strain tensor (e.g., multiaxial material tests).
 \end{itemize}
 
-
 \section{Conclusion}
 
 Integer reduction downsampling is not efficient for the stress-strain data that we collect for material tests.
@@ -530,5 +582,43 @@ The main conclusions are:
 
 \bibliographystyle{unsrtnat}
 \bibliography{ds_references}
+
+\appendix
+
+
+\section{Filtering the stress signal}
+
+The oscillations in the stress signal arises due to the closed-loop PID control when the tangent modulus approaches zero.
+Although these oscillations are a reflection of the condition of the material, we do not want to calibrate to the oscillated signal because the load cell force measurement (and consequently the material-level stress) in these regions also contains the inertia of the system.
+Therefore, elastic unloading does not take place, and the VC/UVC models cannot replicate this behavior.
+Filtering the stress signal is recommended because the local downsampler tolerance, $\epsilon$, will often be within the magnitude of oscillations observed in our tests.
+This results in a sampling of the oscillations and leads to excess points that cannot be simulated by the material model anyhow.
+
+Two filtering options are explored: a low-pass Butterworth filter and a Savitzky-Golay filter.
+Very briefly, the low-pass filter allows the signal with a frequency below the cutoff frequency, while attenuating higher frequencies.
+The Savitzky-Golay filter can be viewed as a convolution (similar to moving average) that fits a polynomial to each window length.
+This essentially results in a moving weighted average.
+The Savitzky-Golay filter can also be viewed in light of a frequency response \citep{SchaferWhatSavitzkyGolayFilter2011}.
+
+Low-pass filters require the choice of passband frequency, a passband frequency of 1.0~Hz was selected based on a fft analysis of LP6 from the IPE360 web dataset shown in Figure~\ref{fig:filtering-options}.
+The order of the filter was computed using the \texttt{scipy.signal.buttord} function with (I think) the same parameters as used in the MATLAB \texttt{lowpass} function\footnote{\url{https://ch.mathworks.com/help/signal/ref/lowpass.html}}.
+The filter is applied ``forwards'' and ``backwards'' using the \texttt{scipy.signal.sosfiltfilt} function to remove the time delay (one could also compensate for the time delay, but this is a straightforward approach).
+Results using a low-pass filter and Savitzky-Golay filter with a window length of 5 and polynomial order of 1 are shown in Figure~\ref{fig:filtering-options}.
+
+Both the low-pass and Savitzky-Golay filters appear to be reasonably similar in terms of filtering the oscillations.
+The low-pass filter introduces some ``humps'' in the stress signal around the points of load reversal after -0.02~strain, perhaps someone with more signal processing knowledge could handle these artifacts.
+Otherwise, the two methods are also similar in cutting the peaks of the stress signal.
+Therefore, the Savitzky-Golay is recommended because the effect is similar and it does not introduce the ``humps''.
+The Savitzky-Golay filter is also more intuitive, in my opinion.
+
+
+\begin{figure}
+    \centering
+    \includegraphics{test_lowpass.pdf}
+    \caption{Filtering options applied to LP6 of the IPE360 web dataset.}
+    \label{fig:filtering-options}
+\end{figure}
+
+
 
 \end{document}
