@@ -376,19 +376,19 @@ For this particular case, the number of points in the original data is 17259, th
 Detailed results from the HEM320 web and S235/275 15~mm plate datasets are provided in this section to comment on certain aspects of downsampling stress-strain data.
 The results shown in this section were computed using the recommended parameters for the global-error downsampling method using the RDP algorithm.
 Typical downsampled results are compared with original data in Figure~\ref{fig:sampled-compare-dots}.
+Note that cycle cutting is \emph{not} employed for the constant amplitude tests.
 
 The error metrics for the ten load protocols and reduction factors are provided in Figure~\ref{fig:error-and-reduction}.
 The error metric, $\tilde{\varphi}$, is computed using $k_{sample}$ from the proposed global downsampling method.
 The $\tilde{\varphi}$ values are computed using the ``true'' original data (i.e., not filtered and not normalized), this is why they may be larger than 0.5~\%.
-The average value for the HEM320 web dataset is 0.514~\% and for the S235/275 dataset is 0.558~\%.
+The average value for the HEM320 web dataset is 0.480~\% and for the S235/275 dataset is 0.469~\%.
 The error metric is not computed for the integer reduction method because I did not save the indices.
 A more detailed comparison of the different methods in terms of resulting stress-strain is provided for one example in Figure~\ref{fig:hem320-lp8-compare-methods}.
 
 The reduction factors are the number of points in the original divided by the number of samples in the downsampled data.
 Reduction factors are provided for the proposed (New) and integer reduction (Old) downsampling methods.
-The values are not computed for the old method in LPs 4 and~5 because cycle cutting is not employed.
-The total number of data points for all LPs are reduced by 75.8 times for the HEM320 web and 90.0 times for the S235/275.
-Neglecting LPs 4 and 5, the new method reduces the total number of data points by 2.6 times compared to the old method for the HEM320 web and 5.7 times for the S235/275.
+The total number of data points for all LPs are reduced by 105 times for the HEM320 web and 77 times for the S235/275.
+The new method reduces the total number of data points by 3.7 times compared to the old method for the HEM320 web and 2.3 times for the S235/275.
 
 
 \begin{figure}
