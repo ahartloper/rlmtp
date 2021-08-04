@@ -23,8 +23,8 @@
     This method uses existing algorithms that satisfy a local perpendicular distance criterion within a pre-defined tolerance.
     The proposed method is then extended to preserve the global difference in energy between the original and downsampled data within a specified tolerance.
     The global energy downsampling method is particularly useful because it is directly related to the metric used in material calibration.
-    Results from two datasets indicate that, with around 0.5~\% difference in energy, the downsampled data has 50--90 times less points.
-    The proposed method leads to 2--5 times less points than the previous integer reduction downsampling method and also appears to give a better representation of the stress-strain data.
+    Results from two datasets indicate that, with around 0.5~\% difference in energy, the downsampled data has 70--100 times less points.
+    The proposed method leads to 2--3 times less points than the previous integer reduction downsampling method and also appears to give a better representation of the stress-strain data.
 \end{abstract}
 
 \section{Introduction}
@@ -576,7 +576,7 @@ The main conclusions are:
     \item The RDP algorithm leads to satisfactory results as a curvature-preserving downsampler. It is not the optimal solution to the min-\# problem and results may be slightly improved with an optimal algorithm.
     \item Filtering the stress signal is necessary to get the best performance out of downsamplers, however, this adds a complication regarding the selection of filter parameters.
     \item The global error method (Algorithm~\ref{alg:global-err-downsampling}) is recommended because of its link with material calibration problems.
-    \item Using the proposed method, the number of data points is reduced by one to two orders of magnitude based on the examined datasets. This reduction was around 2--5 times better than the integer reduction method. The proposed method appears to provide to a better representation of stress-strain data with fewer points.
+    \item Using the proposed method, the number of data points is reduced by one to two orders of magnitude based on the examined datasets. This reduction was around 2--3 times better than the integer reduction method. The proposed method appears to provide to a better representation of stress-strain data with fewer points.
 \end{itemize}
 
 
@@ -589,16 +589,65 @@ The main conclusions are:
 \section{Filtering the stress signal}
 
 The oscillations in the stress signal arises due to the closed-loop PID control when the tangent modulus approaches zero.
-Although these oscillations are a reflection of the condition of the material, we do not want to calibrate to the oscillated signal because the load cell force measurement (and consequently the material-level stress) in these regions also contains the inertia of the system.
+The oscillating signal is a combination of the intended ``static'' (low frequency) response plus the unintended ``dynamic'' (high frequency) oscillations.
+We do not want to calibrate to the oscillated signal because the load cell force measurement (and consequently the material-level stress) in these regions also contains the inertia of the system.
 Therefore, elastic unloading does not take place, and the VC/UVC models cannot replicate this behavior.
-Filtering the stress signal is recommended because the local downsampler tolerance, $\epsilon$, will often be within the magnitude of oscillations observed in our tests.
-This results in a sampling of the oscillations and leads to excess points that cannot be simulated by the material model anyhow.
+The high frequency content can be removed through filtering.
+It is desirable to remove the oscillations because the local downsampler tolerance, $\epsilon$, will often be within the magnitude of oscillations observed in our tests.
+This results in a sampling of the oscillations and leads to excess points that cannot be simulated by the material model.
 
-Two filtering options are explored: a low-pass Butterworth filter and a Savitzky-Golay filter.
-Very briefly, the low-pass filter allows the signal with a frequency below the cutoff frequency, while attenuating higher frequencies.
-The Savitzky-Golay filter can be viewed as a convolution (similar to moving average) that fits a polynomial to each window length.
-This essentially results in a moving weighted average.
-The Savitzky-Golay filter can also be viewed in light of a frequency response \citep{SchaferWhatSavitzkyGolayFilter2011}.
+Two types of frequency impulse response (FIR) filters have been investigated for filtering the stress signal.
+The first type are derived using a windowing method, specifically the Kaiser method, and the second are derived using a moving average.
+For the Kaiser method, a shape factor, $\beta$, and order, $N$, are determined through empirical equations\footnote{https://ch.mathworks.com/help/signal/ref/kaiserord.html} for a given attenuation.
+The attenuation I used is
+\begin{equation}
+    \label{eqn:kaiser-attenuation}
+    \alpha = \max \left[ -20 \log_{10}[\delta] , \alpha_{sb} \right],
+\end{equation}
+where $\delta$ is the maximum allowable gain (ripple) in the pass band, and $\alpha_{sb}$ is the attenuation in the stop band.
+The maximum in Equation~\ref{eqn:kaiser-attenuation} is because only one parameter is used in the Kaiser method so either the specified ripple in the pass band or the stop band attenuation will control.
+
+The definition of the Kaiser method is completed by selecting a transition width, $\Delta w$, and cutoff frequency, $F_c$.
+The pass band and stop band edges are $F_c \pm \Delta w$.
+Therefore, in total $\delta, \alpha_{sb}, \Delta w, F_c$ need to be specified.
+The pass band edge frequency should be related to the underlying signal, fast Fourier transforms (FFTs) are applied to all the LPs in the HEM320 web, IPE360 web, and S235/275 datasets.
+The resulting normalized power is shown in Figure~\ref{fig:frequency-power}.
+This figure implies that the power decays by four orders of magnitude by 1~Hz.
+A back of the envelope calculation for LP9 steps 14--16 gives a 1.5~\% strain peak-to-peak cycle is covered with a strain rate of 0.008~strain/s.
+This gives a frequency of 1.875~Hz.
+Therefore, a pass band edge frequency of 2~Hz seems appropriate.
+
+FIR filters typically have a constant group delay equal to $N / 2$
+
+The moving average filter, a special case of the Savitzky-Golay filter, can be viewed as an FIR filter as well \citep{SchaferWhatSavitzkyGolayFilter2011}.
+The moving average is equivalent to the S-G filter with polynomial order $p = 0$ or $p = 1$ (because the odd terms of the S-G filter are equal to zero, i.e., $p = 3$ is the same as $p = 2$).
+Together the window length, $w$, and polynomial order define the cutoff frequency and attenuation.
+
+% todo: explain the Nyquist frequency and MATLAB rule from lowpass
+The frequency domain response of FIR filters can be seen in Figure~\ref{fig:filter-freq-response}.
+
+\begin{figure}
+    \centering
+    \includegraphics{frequency_power.png}
+    \caption{Normalized power computed using FFTs for all load protocols in the HEM320 web, IPE360 web, and S235/275 datasets.}
+    \label{fig:frequency-power}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{\textwidth}
+        \includegraphics{kaiser_win_freq-response.pdf}
+        \caption{Entire response}
+    \end{subfigure}
+
+    \begin{subfigure}{\textwidth}
+        \includegraphics{kaiser_win_freq-response_zoom.pdf}
+        \caption{Zoom on the pass band}
+    \end{subfigure}
+    \caption{Frequency response of FIR filters.}
+    \label{fig:filter-freq-response}
+\end{figure}
+
 
 Low-pass filters require the choice of passband frequency, a passband frequency of 1.0~Hz was selected based on a fft analysis of LP6 from the IPE360 web dataset shown in Figure~\ref{fig:filtering-options}.
 The order of the filter was computed using the \texttt{scipy.signal.buttord} function with (I think) the same parameters as used in the MATLAB \texttt{lowpass} function\footnote{\url{https://ch.mathworks.com/help/signal/ref/lowpass.html}}.
