@@ -585,7 +585,6 @@ The main conclusions are:
 
 \appendix
 
-
 \section{Filtering the stress signal}
 
 The oscillations in the stress signal arises due to the closed-loop PID control when the tangent modulus approaches zero.
@@ -598,7 +597,7 @@ This results in a sampling of the oscillations and leads to excess points that c
 
 Two types of frequency impulse response (FIR) filters have been investigated for filtering the stress signal.
 The first type are derived using a windowing method, specifically the Kaiser method, and the second are derived using a moving average.
-For the Kaiser method, a shape factor, $\beta$, and order, $N$, are determined through empirical equations\footnote{https://ch.mathworks.com/help/signal/ref/kaiserord.html} for a given attenuation.
+For the Kaiser method, a shape factor, $\beta$, and order, $N$, are determined through empirical equations\footnote{\url{https://ch.mathworks.com/help/signal/ref/kaiserord.html}} for a given attenuation.
 The attenuation I used is
 \begin{equation}
     \label{eqn:kaiser-attenuation}
@@ -607,9 +606,9 @@ The attenuation I used is
 where $\delta$ is the maximum allowable gain (ripple) in the pass band, and $\alpha_{sb}$ is the attenuation in the stop band.
 The maximum in Equation~\ref{eqn:kaiser-attenuation} is because only one parameter is used in the Kaiser method so either the specified ripple in the pass band or the stop band attenuation will control.
 
-The definition of the Kaiser method is completed by selecting a transition width, $\Delta w$, and cutoff frequency, $F_c$.
-The pass band and stop band edges are $F_c \pm \Delta w$.
-Therefore, in total $\delta, \alpha_{sb}, \Delta w, F_c$ need to be specified.
+The definition of the Kaiser method is completed by selecting a transition width, $\Delta w$, and cutoff frequency, $f_c$.
+The pass band ($f_p$) and stop band edges are $f_c \pm \Delta w$.
+Therefore, in total $\delta, \alpha_{sb}, \Delta w, f_c$ need to be specified.
 The pass band edge frequency should be related to the underlying signal, fast Fourier transforms (FFTs) are applied to all the LPs in the HEM320 web, IPE360 web, and S235/275 datasets.
 The resulting normalized power is shown in Figure~\ref{fig:frequency-power}.
 This figure implies that the power decays by four orders of magnitude by 1~Hz.
@@ -617,14 +616,23 @@ A back of the envelope calculation for LP9 steps 14--16 gives a 1.5~\% strain pe
 This gives a frequency of 1.875~Hz.
 Therefore, a pass band edge frequency of 2~Hz seems appropriate.
 
-FIR filters typically have a constant group delay equal to $N / 2$
+The final consideration for FIR filters is the need to account for the group delay.
+FIR filters typically have a constant group delay equal to $N / 2$, where $N$ is the order of the filter.
+I accounted for this in the FIR filter designed with the Kaiser method by ensuring that the order of the filter is an even integer, then shifting the filtered signal by $N/2$ samples.
+This process deletes the last $N/2$ samples.
 
-The moving average filter, a special case of the Savitzky-Golay filter, can be viewed as an FIR filter as well \citep{SchaferWhatSavitzkyGolayFilter2011}.
+The moving average filter, a special case of the Savitzky-Golay (S-G) filter, can be viewed as an FIR filter as well \citep{SchaferWhatSavitzkyGolayFilter2011}.
 The moving average is equivalent to the S-G filter with polynomial order $p = 0$ or $p = 1$ (because the odd terms of the S-G filter are equal to zero, i.e., $p = 3$ is the same as $p = 2$).
-Together the window length, $w$, and polynomial order define the cutoff frequency and attenuation.
+The general S-G filter fits a polynomial of order $p$ centered at each sample using data from $\pm(w-1)/2$ samples ($w$ must be an odd integer).
+In terms of an FIR filter, the window length, $w$, and polynomial order define the cutoff frequency and attenuation.
+The group delay for S-G filters is $(w - 1) / 2$, different options can be used to offset the group delay\footnote{\url{https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol\_filter.html\#scipy.signal.savgol\_filter}}, the default is just to ignore the first/last $(w - 1) / 2$ values.
 
-% todo: explain the Nyquist frequency and MATLAB rule from lowpass
-The frequency domain response of FIR filters can be seen in Figure~\ref{fig:filter-freq-response}.
+The frequency domain response of the selected FIR filters can be seen in Figure~\ref{fig:filter-freq-response}.
+The frequency is plotted between 0 and 10~Hz because the Nyquist frequency is 10~Hz for a sample rate of 20~Hz ($f_N = 0.5 f_s$).
+For the filter designed using the Kaiser method I selected: $f_{p} = 2$~Hz, $\Delta w = 0.15 (f_N - f_{p})$ (based on default MATLAB lowpass method\footnote{\url{https://ch.mathworks.com/help/signal/ref/lowpass.html}}), 
+$\delta = 0.01$, and $\alpha_{sb} = 10$~dB.
+The $\delta$ controls the $\alpha$ value, as the drop is more than 10~dB in the stop band.
+
 
 \begin{figure}
     \centering
@@ -632,6 +640,8 @@ The frequency domain response of FIR filters can be seen in Figure~\ref{fig:filt
     \caption{Normalized power computed using FFTs for all load protocols in the HEM320 web, IPE360 web, and S235/275 datasets.}
     \label{fig:frequency-power}
 \end{figure}
+
+
 
 \begin{figure}
     \centering
@@ -643,27 +653,34 @@ The frequency domain response of FIR filters can be seen in Figure~\ref{fig:filt
     \begin{subfigure}{\textwidth}
         \includegraphics{kaiser_win_freq-response_zoom.pdf}
         \caption{Zoom on the pass band}
+        \label{fig:freq-response-zoom}
     \end{subfigure}
     \caption{Frequency response of FIR filters.}
     \label{fig:filter-freq-response}
 \end{figure}
 
 
-Low-pass filters require the choice of passband frequency, a passband frequency of 1.0~Hz was selected based on a fft analysis of LP6 from the IPE360 web dataset shown in Figure~\ref{fig:filtering-options}.
-The order of the filter was computed using the \texttt{scipy.signal.buttord} function with (I think) the same parameters as used in the MATLAB \texttt{lowpass} function\footnote{\url{https://ch.mathworks.com/help/signal/ref/lowpass.html}}.
-The filter is applied ``forwards'' and ``backwards'' using the \texttt{scipy.signal.sosfiltfilt} function to remove the time delay (one could also compensate for the time delay, but this is a straightforward approach).
-Results using a low-pass filter and Savitzky-Golay filter with a window length of 5 and polynomial order of 1 are shown in Figure~\ref{fig:filtering-options}.
+From Figure~\ref{fig:filter-freq-response}, the specified S-G filters lead to an attenuation of around 10~dB in the stop band and have a similar cutoff frequency to the Kaiser method.
+In the pass band (Figure~\ref{fig:freq-response-zoom}), the S-G filters begin to attenuate at a lower frequency and have a more gradual response.
+The cutoff frequency in S-G filters decreases as $w$ increases.
 
-Both the low-pass and Savitzky-Golay filters appear to be reasonably similar in terms of filtering the oscillations.
-The low-pass filter introduces some ``humps'' in the stress signal around the points of load reversal after -0.02~strain, perhaps someone with more signal processing knowledge could handle these artifacts.
-Otherwise, the two methods are also similar in cutting the peaks of the stress signal.
-Therefore, the Savitzky-Golay is recommended because the effect is similar and it does not introduce the ``humps''.
-The Savitzky-Golay filter is also more intuitive, in my opinion.
+The Kaiser filter and the S-G filter with $w = 5, p = 0$ are used to filter LP6 from the IPE360 web dataset in Figure~\ref{fig:filtering-options}.
+Both options are effective are effective at removing the oscillations in the stress signal prior to around 2~\% strain amplitude.
+However, both methods only moderately smooth the lower frequency oscillations in the cycle to +4~\% strain.
+The ``Gibbs phenomenon'' in the Kaiser filtered signal is notable in the peaks at negative excursions at -2.5--3.5~\%.
+I speculate that this is because the very quick change in the stress signal and the great attenuation of the high frequency components, as shown in Figure~\ref{fig:filter-freq-response}.
+This does not happen with the S-G filter because there is only modest attenuation of the high frequency signals.
+The missing signals at the end of the Kaiser filtered signal are also apparent in Figure~\ref{fig:filtering-options}.
+
+Overall, the S-G filter performs better than the Kaiser method filter in this case.
+The Remez exchange algorithm (or Parks-McClellan)\footnote{\url{https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.remez.html}}, rather than the Kaiser method, could be used to design a filter with similar characteristics to the S-G filter \citep{SchaferWhatSavitzkyGolayFilter2011}.
+However, one may as well use the underlying target in this case.
+Therefore, the S-G filter with $w = 5, p = 0$ is used for filtering the stress signal.
 
 
 \begin{figure}
     \centering
-    \includegraphics{test_lowpass.pdf}
+    \includegraphics{test_kaiser_win.pdf}
     \caption{Filtering options applied to LP6 of the IPE360 web dataset.}
     \label{fig:filtering-options}
 \end{figure}
