@@ -78,7 +78,7 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     if ind_2prct is None and len(ind_ss) > large_num_cycles and cut_sat_cycles:
         ind_ss = keep_upto_saturation(data, ind_ss, sat_tol=sat_tol, n_cycles_min=n_cycles_min)
 
-    # Run max deviation downsampler
+    # Run downsampler
     # Remove noise in the stress with a moving average filter
     d = np.array(data[['e_true', 'Sigma_true']])
     if apply_filter:
@@ -364,10 +364,10 @@ def read_downsample_props(fpath):
     # To sanitize inputs
     type_map = {'use_local_error': bool, 'downsample_tol': float,
                 'last_ind': int, 'removal_range': int, 'n_elastic_region': int,
-                'apply_filter': bool, 'wl_base_factor': int, 'wl_2prct_factor': int,
+                'apply_filter': bool, 'wl_base_value': int, 'wl_2prct_factor': int,
                 'sat_tol': float, 'f_yn': float}
-    # Deprecated parameters for the old downsampling method
-    old_parameters = ['max_dev_tol', 'use_midpoint_method']
+    # Deprecated parameters
+    old_parameters = ['max_dev_tol', 'use_midpoint_method', 'wl_base_factor']
 
     def sani(x, p):
         if x == 'None':
