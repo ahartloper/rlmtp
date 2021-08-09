@@ -24,7 +24,7 @@ def downsample_data(data, params):
 
 def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind=None, removal_ranges=[],
                       n_elastic_region=7, f_yn=345.0,
-                      apply_filter=True, wl_base_value=5, wl_2prct_factor=1, polyorder=1,
+                      apply_filter=True, wl_base_value=5, wl_2prct_factor=1, polyorder=0,
                       cut_sat_cycles=False, sat_tol=0.99, n_cycles_min=20):
     """ Returns the indices of data to keep.
     :param data pd.DataFrame: Contains the true stress-strain data.
@@ -57,12 +57,12 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
         - The local criteria uses downsample_tol as the local epsilon.
         - The global criteria iterates the local epsilon until the global criteria on all the sampled
           data and the original data is satisfied.
-        - Adds extra data to the initial elastic region to have fidelity in this area
+        - Samples additional points in the initial elastic region to have fidelity in this area
         - If apply_filter=True, a moving average filter is applied to the stress after the
         peaks have been selected, but before the RDP downsampler is applied. Therefore,
         the peaks of the stress-strain data are maintained and the result is somewhat robust to
-        noise in the stress data. See rlmtp.downsampler.filter_stress for details on the stresss filter.
-        - wl_base_factor and wl_2prct_factor are parameters of the stress filter.
+        oscillations in the stress data. See rlmtp.downsampler.filter_stress for details on the stresss filter.
+        - wl_base_value and wl_2prct_factor are parameters of the stress filter.
         - Cycle cutting with sat_tol takes cycles up to and including when stress > sat_tol*max(stress)
           and stress < sat_tol*min(stress). This assumes a cyclic hardening behavior
         - The value of sat_tol should be: 0.0 < sat_tol <= 1.0.
@@ -87,7 +87,7 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     if use_local_error:
         ind_downsampler = apply_downsampler(d, ind_ss[-1], downsample_tol)
     else:
-        ind_downsampler = downsample_loop(d, ind_ss[-1], downsample_tol)
+        ind_downsampler = downsample_loop(d, ind_ss[-1], downsample_tol, removal_ranges=removal_ranges)
 
     # Combine the points, remove any points that lie between the removal ranges
     ind_final = ind_ss + ind_downsampler
@@ -117,9 +117,9 @@ def apply_downsampler(d, last_ind, tol):
     :param tol float: Threshold to use in the downsampler.
     :return list: Indices to keep.
     """
-    d, _, _ = scale_data(d)
     # Only use the data up to the last index from the stress-strain peaks
     d = d[0:last_ind+1, :]
+    d, _, _ = scale_data(d)
     # ind_ds = max_deviation_downsampler(d, tol)
     ind_ds = list(polyprox.min_num(d, epsilon=tol, return_index=True))
     return ind_ds
@@ -399,9 +399,10 @@ def read_downsample_props(fpath):
 
 def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=10, removal_ranges=[]):
     """ Runs downsampler until a global tolerance is reached. """
-    d, e_range, s_range = scale_data(d)
     # Only use the data up to the last index from the stress-strain peaks
     d = d[0:last_ind+1, :]
+    d, e_range, s_range = scale_data(d)
+
     ds_tol = local_tol_0
     e = 10 * global_tol
     it = 0
