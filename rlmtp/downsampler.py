@@ -303,7 +303,7 @@ def downsample_error(d, ind, removal_ranges=[], e_scale=1.0, s_scale=1.0):
     # Remove any data in removal ranges so compute correct error
     if len(removal_ranges) > 0:
         remove_ind = []
-        remove_ind = [remove_ind + range(r[0]+1, r[1]) for r in removal_ranges]
+        remove_ind = [remove_ind + list(range(r[0]+1, r[1])) for r in removal_ranges]
         d2 = np.delete(d, remove_ind, axis=0)
     else:
         d2 = d.copy()
