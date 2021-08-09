@@ -329,8 +329,10 @@ I found that $\epsilon_g = 0.005$ roughly correlates with $\epsilon = 0.001$.
             \EndIf
             \State Truncate data past $n_{sat}$ cycles
         \EndIf
-        \State Filter stress data pre-2~\% strain with window length $\alpha \cdot w$ and order $p$
-        \State Filter stress data post-2~\% strain with window length $w$ and order $p$
+        \If{want to filter}
+            \State Filter stress pre-2~\% strain with window length $\alpha \cdot w$ and order $p$
+            \State Filter stress post-2~\% strain with window length $w$ and order $p$
+        \EndIf
         \State Normalize the stress-strain data
         \State $k_2 \gets$ indices from downsampler with local ($\epsilon$) or global method ($\epsilon_g, \epsilon_0$) \label{algline:downsampler}
         \State $k_3 \gets$ indices of $n_{elastic}$ evenly spaced points in the initial elastic region
