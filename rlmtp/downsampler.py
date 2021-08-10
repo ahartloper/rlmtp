@@ -429,11 +429,14 @@ def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=50, remova
     lower_tol_factor = 0.9
     global_tol_lower_bound = lower_tol_factor * global_tol
     lower_target = (global_tol + global_tol_lower_bound) / 2
-    while global_tol_lower_bound > e > global_tol and it < max_its:
+    while it < max_its:
         ds_tol = np.interp(lower_target, [lower_bound[1], upper_bound[1]], [lower_bound[0], upper_bound[0]])
         ind = polyprox.min_num(d, epsilon=ds_tol, return_index=True)
         e = downsample_error(d, ind, removal_ranges, e_range, s_range)
         print('Current error = {0:0.2%}, # points = {1}, current tol = {2:0.3e}'.format(e, len(ind), ds_tol))
+        # Check convergence, update the bounds
+        if global_tol_lower_bound < e < global_tol:
+            break
         if e > global_tol:
             upper_bound = (ds_tol, e)
         else:
