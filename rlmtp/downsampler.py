@@ -397,7 +397,7 @@ def read_downsample_props(fpath):
     return properties
 
 
-def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=20, removal_ranges=[]):
+def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=50, removal_ranges=[]):
     """ Runs downsampler until a global tolerance is reached. """
     # Only use the data up to the last index from the stress-strain peaks
     d = d[0:last_ind+1, :]
@@ -409,16 +409,35 @@ def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=20, remova
     # 1.05 below to force a continued reduction near global_tol = e
     convergence_factor = 1.05
 
-    # Stop when: have less than global tol, within 10% of global tol, and too many iterations
-    while not (0.9 * global_tol < e < global_tol) and it < max_its:
+    # Get below the global tolerance
+    while e > global_tol and it < max_its:
+        ind = polyprox.min_num(d, epsilon=ds_tol, return_index=True)
+        e = downsample_error(d, ind, removal_ranges, e_range, s_range)
+        print('Current error = {0:0.1%}, # points = {1}, current tol = {2:0.3e}'.format(e, len(ind), ds_tol))
+        # Update upper and lower bounds on local epsilon
+        if it == 0:
+            upper_bound = (ds_tol, e)
+            lower_bound = (ds_tol, e)
+        else:
+            upper_bound = lower_bound
+            lower_bound = (ds_tol, e)
+        # Update local tolerance
+        ds_tol *= (global_tol / e / convergence_factor)
+        it += 1
+
+    # Ensure that not too far below the global tolerance target
+    lower_tol_factor = 0.9
+    global_tol_lower_bound = lower_tol_factor * global_tol
+    lower_target = (global_tol + global_tol_lower_bound) / 2
+    while global_tol_lower_bound < e < global_tol and it < max_its:
+        ds_tol = np.interp(lower_target, [lower_bound[1], upper_bound[1]], [lower_bound[0], upper_bound[0]])
         ind = polyprox.min_num(d, epsilon=ds_tol, return_index=True)
         e = downsample_error(d, ind, removal_ranges, e_range, s_range)
         print('Current error = {0:0.1%}, # points = {1}, current tol = {2:0.3e}'.format(e, len(ind), ds_tol))
         if e > global_tol:
-            k = convergence_factor
+            upper_bound = (ds_tol, e)
         else:
-            k = 1.0
-        ds_tol *= (global_tol / e / k)
+            lower_bound = (ds_tol, e)
         it += 1
 
     return list(ind)
