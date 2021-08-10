@@ -362,10 +362,10 @@ def read_downsample_props(fpath):
     :return dict: Parsed properties.
     """
     # To sanitize inputs
-    type_map = {'use_local_error': bool, 'downsample_tol': float,
-                'last_ind': int, 'removal_range': int, 'n_elastic_region': int,
-                'apply_filter': bool, 'wl_base_value': int, 'wl_2prct_factor': int,
-                'sat_tol': float, 'f_yn': float}
+    type_map = {'use_local_error': bool, 'downsample_tol': float, 'last_ind': int, 'removal_range': int,
+                'n_elastic_region': int, 'f_yn': float,
+                'apply_filter': bool, 'wl_base_value': int, 'wl_2prct_factor': int, 'polyorder': int,
+                'cut_sat_cycles': bool, 'sat_tol': float, 'n_cycles_min': int}
     # Deprecated parameters
     old_parameters = ['max_dev_tol', 'use_midpoint_method', 'wl_base_factor']
 
