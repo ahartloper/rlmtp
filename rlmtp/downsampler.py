@@ -441,6 +441,7 @@ def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=50, remova
             break
         if lower_bound[2] - upper_bound[2] < 10:
             # Only 10 point difference, so OK and exit with lower bound
+            print('Small difference in # points lower/upper bounds, using lower bound.')
             ind = lower_bound[3]
             break
         # No convergence, update the bounds
@@ -452,7 +453,7 @@ def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=50, remova
     # Couldn't find a good solution, use the lower bound
     if it == max_its:
         # Use the lower bound
-        print('Taking lower bound number of points')
+        print('Number of iterations exceeded, taking lower bound number of points')
         ind = lower_bound[3]
 
     return list(ind)
