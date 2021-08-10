@@ -416,11 +416,11 @@ def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=50, remova
         print('Current error = {0:0.2%}, # points = {1}, current tol = {2:0.3e}'.format(e, len(ind), ds_tol))
         # Update upper and lower bounds on local epsilon
         if it == 0:
-            upper_bound = [ds_tol, e, len(ind)]
-            lower_bound = [ds_tol, e, len(ind)]
+            upper_bound = [ds_tol, e, len(ind), ind]
+            lower_bound = [ds_tol, e, len(ind), ind]
         else:
             upper_bound = lower_bound
-            lower_bound = [ds_tol, e, len(ind)]
+            lower_bound = [ds_tol, e, len(ind), ind]
         # Update local tolerance
         ds_tol *= (global_tol / e / convergence_factor)
         it += 1
@@ -428,7 +428,8 @@ def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=50, remova
     # Ensure that not too far below the global tolerance target
     lower_tol_factor = 0.9
     global_tol_lower_bound = lower_tol_factor * global_tol
-    lower_target = 1.02 * (global_tol + global_tol_lower_bound) / 2
+    # Target slightly below the maximum
+    lower_target = 0.98 * global_tol
     while it < max_its:
         ds_tol = np.interp(lower_target, [lower_bound[1], upper_bound[1]], [lower_bound[0], upper_bound[0]])
         ind = polyprox.min_num(d, epsilon=ds_tol, return_index=True)
@@ -439,18 +440,19 @@ def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=50, remova
             # Found good local tolerance
             break
         if lower_bound[2] - upper_bound[2] < 10:
-            # Only 10 point difference, so OK
+            # Only 10 point difference, so OK and exit with lower bound
+            ind = lower_bound[3]
             break
         # No convergence, update the bounds
         if e > global_tol:
-            upper_bound = [ds_tol, e, len(ind)]
+            upper_bound = [ds_tol, e, len(ind), ind]
         else:
-            lower_bound = [ds_tol, e, len(ind)]
+            lower_bound = [ds_tol, e, len(ind), ind]
         it += 1
     # Couldn't find a good solution, use the lower bound
     if it == max_its:
         # Use the lower bound
         print('Taking lower bound number of points')
-        ind = polyprox.min_num(d, epsilon=lower_bound[0], return_index=True)
+        ind = lower_bound[3]
 
     return list(ind)
