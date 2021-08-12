@@ -68,34 +68,34 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
         - The value of sat_tol should be: 0.0 < sat_tol <= 1.0.
     """
     # Obtain the "peaks" in the stress-strain data
-    ind_ss, ind_2prct = stress_strain_peaks(data, last_ind=last_ind, f_yn=f_yn)
+    ind_peaks, ind_2prct = stress_strain_peaks(data, last_ind=last_ind, f_yn=f_yn)
     # Remove any duplicates and sort
-    ind_ss = sorted(list(set(ind_ss)))
+    ind_peaks = sorted(list(set(ind_peaks)))
 
     # Only use cycles up to saturation for constant amplitude tests
     # Constant amplitude if ind_2prct=None and many peaks found
     large_num_cycles = 55
-    if ind_2prct is None and len(ind_ss) > large_num_cycles and cut_sat_cycles:
-        ind_ss = keep_upto_saturation(data, ind_ss, sat_tol=sat_tol, n_cycles_min=n_cycles_min)
+    if ind_2prct is None and len(ind_peaks) > large_num_cycles and cut_sat_cycles:
+        ind_peaks = keep_upto_saturation(data, ind_peaks, sat_tol=sat_tol, n_cycles_min=n_cycles_min)
 
     # Run downsampler
-    # Remove noise in the stress with a moving average filter
+    # Remove noise in the stress with a S-G filter
     d = np.array(data[['e_true', 'Sigma_true']])
     if apply_filter:
         d[:, 1] = filter_stress(d, ind_2prct, wl_base=wl_base_value, wl_factor=wl_2prct_factor,
                                 poly_order=polyorder)
     if use_local_error:
-        ind_downsampler = apply_downsampler(d, ind_ss[-1], downsample_tol)
+        ind_downsampler = apply_downsampler(d, ind_peaks, downsample_tol)
     else:
-        ind_downsampler = downsample_loop(d, ind_ss[-1], downsample_tol, removal_ranges=removal_ranges)
+        ind_downsampler = downsample_loop(d, ind_peaks, downsample_tol, removal_ranges=removal_ranges)
 
     # Combine the points, remove any points that lie between the removal ranges
-    ind_final = ind_ss + ind_downsampler
+    ind_final = ind_peaks + ind_downsampler
     ind_final = apply_removal_ranges(ind_final, removal_ranges)
     ind_final = sorted(list(set(ind_final)))
 
     # Keep extra points in initial elastic region
-    ind_final += add_to_elastic(d, [ind_ss[0], ind_ss[1]], n_elastic_region)
+    ind_final += add_to_elastic(d, [ind_peaks[0], ind_peaks[1]], n_elastic_region)
     # Sort again and return
     ind_final = sorted(list(set(ind_final)))
     return ind_final
@@ -110,19 +110,22 @@ def scale_data(d):
     return d, e_range, s_range
 
 
-def apply_downsampler(d, last_ind, tol):
+def apply_downsampler(d, peaks, tol, scale_data=True):
     """ Returns the indices to keep in d.
     :param d np.array: x-y data.
-    :param last_ind int: Only considers d[0:last_ind+1].
+    :param peaks list: Indices of the stress-strain peaks.
     :param tol float: Threshold to use in the downsampler.
     :return list: Indices to keep.
     """
-    # Only use the data up to the last index from the stress-strain peaks
-    d = d[0:last_ind+1, :]
-    d, _, _ = scale_data(d)
-    # ind_ds = max_deviation_downsampler(d, tol)
-    ind_ds = list(polyprox.min_num(d, epsilon=tol, return_index=True))
-    return ind_ds
+    if scale_data:
+        # Only use the data up to the last index from the stress-strain peaks
+        last_ind = peaks[-1]
+        d, _, _ = scale_data(d[0:last_ind, :])
+    # Sample within each half-cycle
+    ind = []
+    for i in range(len(peaks) - 1):
+        ind += list(polyprox.min_num(d[peaks[i]:peaks[i + 1], :], epsilon=tol, return_index=True))
+    return sorted(list(set(ind)))
 
 
 def apply_removal_ranges(ind_final, removal_ranges):
@@ -397,12 +400,13 @@ def read_downsample_props(fpath):
     return properties
 
 
-def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=50, removal_ranges=[]):
+def downsample_loop(d, peaks, global_tol, local_tol_0=0.1, max_its=50, removal_ranges=[]):
     """ Runs downsampler until a global tolerance is reached. """
     # Only use the data up to the last index from the stress-strain peaks
-    d = d[0:last_ind+1, :]
+    last_ind = peaks[-1]
+    d = d[0:last_ind, :]
     d, e_range, s_range = scale_data(d)
-
+    # Set parameters
     ds_tol = local_tol_0
     e = 10 * global_tol
     it = 0
@@ -411,8 +415,9 @@ def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=50, remova
 
     # Get below the global tolerance
     while e > global_tol and it < max_its:
-        ind = polyprox.min_num(d, epsilon=ds_tol, return_index=True)
-        e = downsample_error(d, ind, removal_ranges, e_range, s_range)
+        ind = apply_downsampler(d, peaks, ds_tol, scale_data=False)
+        ind_all = sorted(list(set(ind + peaks)))
+        e = downsample_error(d, ind_all, removal_ranges, e_range, s_range)
         print('Current error = {0:0.2%}, # points = {1}, current tol = {2:0.3e}'.format(e, len(ind), ds_tol))
         # Update upper and lower bounds on local epsilon
         if it == 0:
@@ -432,8 +437,9 @@ def downsample_loop(d, last_ind, global_tol, local_tol_0=0.1, max_its=50, remova
     lower_target = 0.98 * global_tol
     while it < max_its:
         ds_tol = np.interp(lower_target, [lower_bound[1], upper_bound[1]], [lower_bound[0], upper_bound[0]])
-        ind = polyprox.min_num(d, epsilon=ds_tol, return_index=True)
-        e = downsample_error(d, ind, removal_ranges, e_range, s_range)
+        ind = apply_downsampler(d, peaks, ds_tol, scale_data=False)
+        ind_all = sorted(list(set(ind + peaks)))
+        e = downsample_error(d, ind_all, removal_ranges, e_range, s_range)
         print('Current error = {0:0.2%}, # points = {1}, current tol = {2:0.3e}'.format(e, len(ind), ds_tol))
         # Check convergence
         if global_tol_lower_bound < e < global_tol:
