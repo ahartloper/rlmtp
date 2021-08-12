@@ -24,8 +24,8 @@
     This method uses existing algorithms that satisfy a local perpendicular distance criterion within a pre-defined tolerance.
     The proposed method is then extended to preserve the global difference in energy between the original and downsampled data within a specified tolerance.
     The global energy downsampling method is particularly useful because it is directly related to the metric used in material calibration.
-    Results from two datasets indicate that, with around 0.5~\% difference in energy, the downsampled data has 70--100 times less points.
-    The proposed method leads to 2--3 times less points than the previous integer reduction downsampling method and also appears to give a better representation of the stress-strain data.
+    Results from two datasets indicate that, with around 0.5~\% difference in energy, the downsampled data has around 80 times less points.
+    The proposed method leads to 3 times less points than the previous integer reduction downsampling method and also appears to give a better representation of the stress-strain data.
 \end{abstract}
 
 \section{Introduction}
@@ -87,7 +87,7 @@ The auxiliary parts are to keep additional points in the initial elastic region 
 The final downsampled data is the unique set of sample points from all the parts.
 
 Mosts of the heavy lifting is done in the second main part.
-The first main part is essential to overcome \emph{aliasing} in the sampled data and determine properties such as the number of cycles.
+The first main part is essential to mitigate attenuating the peaks in the sampled data and determine properties such as the number of cycles.
 The auxiliary parts ensure fidelity of the initial elastic region and remove data that does not contribute much to the material behavior.
 The auxiliary part of cutting cycles in constant amplitude loading is implemented as an optional feature in the proposed method.
 Details are given for each part and a summary of the entire procedure is given afterwards.
@@ -227,22 +227,54 @@ Note that my implementation uses the filtered/scaled ``$\sigma_{test}$'' to comp
 		\State \textbf{input:} Set of points, $\{x_i\}_{i=0}^{N-1}$ with $x_i \in \mathbb{R}^n$ and $N \in \mathbb{Z}$; initial local tolerance, $\epsilon_0 \in \mathbb{R}$; and
         global tolerance $\epsilon_g \in \mathbb{R}$.
         \State \textbf{output:} Set of indices between $[0, N)$ to keep, $k_{sample}$.
+        \bigskip
+
         \State $\chi \gets 1.05$
         \Comment Factor to accelerate convergence
-        \State $n_g \gets 10$
+        \State $n_g \gets 50$
         \Comment Maximum number of iterations
+        \State $\beta_l \gets 0.9$
+        \Comment Lower bound factor for global error
+        \State $\beta_t \gets 0.98$
+        \Comment Global error target factor
+        \smallskip
+
         \State $i \gets 0$
         \State $\tilde{\varphi} \gets 10 \cdot \epsilon_g$
         \Comment Just to be larger than $\epsilon_g$ initially
         \State $\epsilon \gets \epsilon_0$
+        \State $p_l \gets (\epsilon, \tilde{\varphi})$
+        \Comment Initial local tolerance and global error
+        \smallskip
+
 		\While{$\tilde{\varphi} > \epsilon_g$ and $i < n_g$}
+            \Comment Find $\tilde{\varphi} < \epsilon_g$
+            \State $k_{sample} \gets$ indices from downsampling with local tolerance $\epsilon$
+            \State $\tilde{\varphi} \gets$ error metric computed using $\{x_i\}$ and $k_{sample}$
+            \State $p_u \gets p_l$
+            \Comment Update upper bound
+            \State $p_l \gets (\epsilon, \tilde{\varphi})$
+            \Comment New lower bound
+            \State $\epsilon \gets \epsilon \cdot (\epsilon_g / (\chi \, \tilde{\varphi}))$
+            \State $i \gets i + 1$
+		\EndWhile
+        \While{($\tilde{\varphi} < \beta \epsilon_g$ or $\tilde{\varphi} > \epsilon_g$) and $i < n_g$}
+            \Comment Refine if $\tilde{\varphi}$ too low
+            \State $\epsilon \gets$ interpolated value $\beta_t \epsilon_g$ between $p_l$ and $p_u$
             \State $k_{sample} \gets$ indices from downsampling with local tolerance $\epsilon$
             \State $\tilde{\varphi} \gets$ error metric computed using $\{x_i\}$ and $k_{sample}$
             \If{$\tilde{\varphi} > \epsilon_g$}
-                \State $\epsilon \gets \epsilon \cdot (\epsilon_g / (\chi \, \tilde{\varphi}))$
-                \State $i \gets i + 1$
+                \State $p_u \gets (\epsilon, \tilde{\varphi})$
+                \Comment Update upper bound
+            \Else
+                \State $p_l \gets (\epsilon, \tilde{\varphi})$
+                \Comment Update lower bound
             \EndIf
-		\EndWhile
+            \If{difference in \# between upper and lower bounds is $< 10$}
+                \State \textbf{break}
+                \Comment Exit with lower bound
+            \EndIf
+        \EndWhile
 \end{algorithmic}
 \end{algorithm}
 
@@ -344,39 +376,60 @@ I found that $\epsilon_g = 0.005$ roughly correlates with $\epsilon = 0.001$.
 
 \section{Results}
 
-Detailed results from the HEM320 web and S235/275 15~mm plate datasets are provided in this section to comment on certain aspects of downsampling stress-strain data.
-The results shown in this section were computed using the recommended parameters for the global-error downsampling method using the RDP algorithm.
-Cycle cutting is \emph{not} employed for the constant amplitude tests.
-Typical downsampled results are compared with original data in Figure~\ref{fig:sampled-compare-dots}.
+Average results from the entire database and detailed results from the HEM320 web dataset are provided in this section to comment on certain aspects of downsampling stress-strain data.
+The detailed results shown in this section were computed using the recommended parameters for the global-error downsampling method using the RDP algorithm.
+Cycle cutting is \emph{not} employed for the constant amplitude tests in any of the datasets.
 
-The error metrics for the ten load protocols and reduction factors are provided in Figure~\ref{fig:error-and-reduction}.
+Average results for the entire database are presented in terms of the reduction factor and $\tilde{\varphi}$ metric.
+The reduction factors are the number of points in the original divided by the number of samples in the downsampled data (i.e., higher factor is better).
+Reduction factors are provided for the proposed (new) and integer reduction (old) downsampling methods.
 The error metric, $\tilde{\varphi}$, is computed using $k_{sample}$ from the proposed global downsampling method.
 The $\tilde{\varphi}$ values are computed using the ``true'' original data (i.e., not filtered and not normalized), this is why they may be larger than 0.5~\%.
-The average value for the HEM320 web dataset is 0.480~\% and for the S235/275 dataset is 0.469~\%.
+
+Across 15 datasets, the average reduction in the number of points from the original to downsampled data is 81 times (standard deviation of 28, minimum of 32 and maximum of 124) using the proposed method, this is 3 times better than the old method.
+Note that these values were computed excluding experiments that were re-done because of, e.g., excessive oscillations or premature buckling.
+The average error between the original and downsampled data across the 15 datasets (132 tests) is 0.49~\% with a standard deviation of 0.14~\%.
+The error values exclude 14 tests that had large elastic unloading cycles immediately after the upper yield point.
+
+\begin{figure}
+    \centering
+    \includegraphics{error_histogram.pdf}
+    \caption{Histogram of errors between the original and downsampled data using the proposed global method.}
+    \label{fig:histogram-error-all-datasets}
+\end{figure}
+
+Typical downsampled results are compared with original data in Figure~\ref{fig:sampled-compare-dots} for the HEM320 web dataset.
+The error metrics for the ten load protocols and reduction factors are provided in Figure~\ref{fig:error-and-reduction}.
+The average value for the HEM320 web dataset is 0.510~\%.
 The error metric is not computed for the integer reduction method because I did not save the indices.
 A more detailed comparison of the different methods in terms of resulting stress-strain is provided for one example in Figure~\ref{fig:hem320-lp8-compare-methods}.
+The total number of data points for all LPs are reduced by 111 times for the HEM320 web.
+The new method reduces the total number of data points by 3.9 times compared to the old method for the HEM320 web.
 
-The reduction factors are the number of points in the original divided by the number of samples in the downsampled data (i.e., higher factor is better).
-Reduction factors are provided for the proposed (New) and integer reduction (Old) downsampling methods.
-The total number of data points for all LPs are reduced by 105 times for the HEM320 web and 77 times for the S235/275.
-The new method reduces the total number of data points by 3.7 times compared to the old method for the HEM320 web and 2.3 times for the S235/275.
+
 
 
 \begin{figure}
     \centering
     \begin{subfigure}[b]{0.49\linewidth}
         \centering
-        \includegraphics{LP8_dots_WP3_HEM320_C_CRM20.pdf}
-        \caption{HEM320 web}
-        \label{fig:hem320-lp8-results}
+        \includegraphics{LP1_dots_WP3_HEM320_C_CRM20.pdf}
+        \caption{LP 1}
+        \label{fig:hem320-lp1-results}
     \end{subfigure}
     \begin{subfigure}[b]{0.49\linewidth}
         \centering
-        \includegraphics{LP8_dots_S235275_Plate15.pdf}
-        \caption{S235/275 15~mm plate}
-        \label{fig:s235275-lp8-results}
+        \includegraphics{LP8_dots_WP3_HEM320_C_CRM20.pdf}
+        \caption{LP 8}
+        \label{fig:hem320-lp8-results}
     \end{subfigure}
-    \caption{Sampled points in LP8 from datasets. Line is the original data, dots are the sampled points using the proposed method.}
+    % \begin{subfigure}[b]{0.49\linewidth}
+    %     \centering
+    %     \includegraphics{LP8_dots_S235275_Plate15.pdf}
+    %     \caption{S235/275 15~mm plate}
+    %     \label{fig:s235275-lp8-results}
+    % \end{subfigure}
+    \caption{Sampled points from the HEM320 web dataset. Line is the original data, dots are the sampled points using the proposed method.}
     \label{fig:sampled-compare-dots}
 \end{figure}
 
@@ -386,29 +439,28 @@ The new method reduces the total number of data points by 3.7 times compared to 
     \begin{subfigure}[b]{0.45\linewidth}
         \centering
         \includegraphics{error_WP3_HEM320_C_CRM20.pdf}
-        \caption{Error, HEM320 web}
+        \caption{Error}
         \label{fig:hem320-error}
     \end{subfigure}
-    \begin{subfigure}[b]{0.45\linewidth}
-        \centering
-        \includegraphics{error_S235275_Plate15.pdf}
-        \caption{Error, S235/275 15~mm plate}
-        \label{fig:s235275-error}
-    \end{subfigure}
-
+    % \begin{subfigure}[b]{0.45\linewidth}
+    %     \centering
+    %     \includegraphics{error_S235275_Plate15.pdf}
+    %     \caption{Error, S235/275 15~mm plate}
+    %     \label{fig:s235275-error}
+    % \end{subfigure}
     \begin{subfigure}[b]{0.45\linewidth}
         \centering
         \includegraphics{N_reduction_WP3_HEM320_C_CRM20.pdf}
-        \caption{Reduction, HEM320 web}
+        \caption{Reduction}
         \label{fig:hem320-reduction}
     \end{subfigure}
-    \begin{subfigure}[b]{0.45\linewidth}
-        \centering
-        \includegraphics{N_reduction_S235275_Plate15.pdf}
-        \caption{Reduction, S235/275 15~mm plate}
-        \label{fig:s235275-reduction}
-    \end{subfigure}
-    \caption{Error and reduction factors between original and downsampled data. New is the proposed method, Old is the integer factor downsampling.}
+    % \begin{subfigure}[b]{0.45\linewidth}
+    %     \centering
+    %     \includegraphics{N_reduction_S235275_Plate15.pdf}
+    %     \caption{Reduction, S235/275 15~mm plate}
+    %     \label{fig:s235275-reduction}
+    % \end{subfigure}
+    \caption{Error and reduction factors between original and downsampled data for the HEM320 web. New is the proposed method, Old is the integer factor downsampling.}
     \label{fig:error-and-reduction}
 \end{figure}
 
@@ -428,8 +480,8 @@ The new method reduces the total number of data points by 3.7 times compared to 
 Figure~\ref{fig:sampled-compare-dots} shows that the sampled points tend to be concentrated in the regions of high curvature and the initial elastic region.
 Additionally, the peaks of the stress-strain graph are all sampled.
 Using the global method, the procedure is straightforward and interpretable.
-Figures~\ref{fig:hem320-error} and~\ref{fig:s235275-error} show that the error with the global method is around 0.5~\%.
-At this level of error, the data is reduced by between 50--90 times compared to the original.
+Figures~\ref{fig:histogram-error-all-datasets} and~\ref{fig:hem320-error} show that the error with the global method is around 0.5~\%.
+At this level of error, the data is reduced, on average, by around 80 times compared to the original.
 
 The main strengths of the global error method are its reliability and its relation to the inverse problem in \citet{deCastroeSousaConsistencySolvingInverse2020}.
 For example, the old method does not sample the curved parts of the graph in Figure~\ref{fig:hem320-lp8-compare-methods} as well as the new method.
@@ -439,11 +491,28 @@ For instance, $\tilde{\varphi} = 0.5$~\% is approximately one order of magnitude
 Therefore, the downsampling process is expected to have a fairly limited impact on the minimization of $\varphi$ defined in \citet{deCastroeSousaConsistencySolvingInverse2020}.
 A stricter tolerance $\epsilon_g$ can be specified depending on the application and requirements of the analyst.
 
-Another strength of the RDP method is that it is strain rate independent because it is based on the curvature of the data and will sample points appropriately.
-The recommended $w$ and $\alpha$ parameters appear to work well as long as the standard load protocols are followed because the primary signal frequencies are not attenuated.
-However, different values may be required if the strain rate is increased.
+A strength of the RDP method is that it is fairly insensitive to the strain rate because it is based on the curvature of the data and will sample points appropriately.
+In terms of the filtering, the recommended $w, \alpha, p$ parameters appear to work well as long as the standard load protocols are followed.
+However, different values may be required if the strain and sampling rates are modified.
 In this case, and other cases for different parameters, my implementation of Algorithm~\ref{alg:overall-summary} in \texttt{rlmtp} (RESSLab Material Test Processing) allows the user specify all of the parameters listed in Section~\ref{sec:overall-procedure}.
 The input parameters for tests that do not follow the standard load protocols can be saved in a file and read by the algorithm when the downsampling occurs.
+
+\subsection{Verification of new results}
+
+The parameters recommended in Section~\ref{sec:overall-procedure} are a good starting point, and have been used to process nearly all of the data in the database.
+However, due to the variability in the materials we are testing and potential control issues, a strict ``one-size-fits-all'' approach is not recommended.
+\emph{The analyst should verify the results of each test} by (1) checking that the number of data points after downsampling is reasonable and (2) checking that the error $\tilde{\varphi}$ is not excessive.
+This can be done, for example, by:
+\begin{itemize}
+    \item visually comparing the stress-strain graphs of the original and downsampled data (see Figure~\ref{fig:hem320-lp8-compare-methods});
+    \item computing $\tilde{\varphi}$ for each test (see the \texttt{rlmtp.downsample\_error} function)
+    \item comparing the reduction in data with existing results (expected to be around 50--100 times reduction).
+\end{itemize}
+
+If the results are not satisfactory, then the parameters of the downsampler (\texttt{rlmtp.rlmtp\_downsampler}) can be adjusted.
+This may include adjusting the tolerance ($\epsilon_g$), not filtering the data, and adjusting the filtering parameters ($w, p, \alpha$).
+For instance, excessive sampling due to oscillations can be controlled by increasing $w$ (see Section~\ref{sec:filtering}, specifically Figure~\ref{fig:filter-freq-response}).
+Afterwards, it is critical to evaluate $\tilde{\varphi}$ and the stress-strain graphs of the original and downsampled data to ensure that the downsampled data faithfully reproduces the original.
 
 \subsection{Choice of algorithm}
 
@@ -532,15 +601,15 @@ The maximum deviation downsampler and Ramer–Douglas–Peucker (RDP) algorithms
 A global-error preserving method was proposed because these algorithms operate on a local criterion.
 The auxillary steps are to add points to the initial elastic region and to remove cycles after saturation of cyclic hardening in constant amplitude tests.
 Heuristic parameters applicable to tests carried out according to the standard load protocols were provided.
-Results from two datasets were provided to indicate the performance of the proposed method.
+Results from available datasets were provided to indicate the performance of the proposed method.
 The main conclusions are:
 \begin{itemize}
     \item Re-scaling the stress and strain signals prior to downsampling is suggested to mimic the geometric notion of curvature in stress-strain graphs. A scaled distance could be computed instead, however, this seems to be more complicated than just scaling the data. An acceptable local error, $\epsilon$, has to be selected regardless of this choice.
     \item The RDP algorithm is better than the maximum deviation downsampler because it is more strict in enforcing the local tolerance and it is faster.
     \item The RDP algorithm leads to satisfactory results as a curvature-preserving downsampler. It is not the optimal solution to the min-\# problem and results may be slightly improved with an optimal algorithm.
-    \item Filtering the stress signal is necessary to get the best performance out of downsamplers, however, this adds a complication regarding the selection of filter parameters.
-    \item The global error method (Algorithm~\ref{alg:global-err-downsampling}) is recommended because of its link with material calibration problems.
-    \item Using the proposed method and parameters recommended in Section~\ref{sec:overall-procedure}, the number of data points is reduced by one to two orders of magnitude based on the examined datasets. This reduction was around 2--3 times better than the integer reduction method. The proposed method appears to provide to a better representation of stress-strain data with fewer points.
+    \item Filtering the stress signal is necessary to get the best performance out of the RDP algorithm, however, this adds a complication regarding the selection of filter parameters.
+    \item The global error method (Algorithm~\ref{alg:global-err-downsampling}) is recommended because of its link with material calibration problems and it provides some measure of quality assurance in the results.
+    \item Using the proposed method and parameters recommended in Section~\ref{sec:overall-procedure}, the number of data points is reduced by around 80 times based on the 15 datasets that were analyzed. This reduction was around 3 times better than the integer reduction method. The proposed method appears to provide to a better representation of stress-strain data with fewer points.
 \end{itemize}
 
 
