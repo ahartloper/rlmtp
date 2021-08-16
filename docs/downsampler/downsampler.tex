@@ -379,6 +379,7 @@ I found that $\epsilon_g = 0.005$ roughly correlates with $\epsilon = 0.001$.
 Average results from the entire database and detailed results from the HEM320 web dataset are provided in this section to comment on certain aspects of downsampling stress-strain data.
 The detailed results shown in this section were computed using the recommended parameters for the global-error downsampling method using the RDP algorithm.
 Cycle cutting is \emph{not} employed for the constant amplitude tests in any of the datasets.
+The values are computed excluding the experiments that were re-done because of, e.g., excessive oscillations or premature buckling, since they will not be used in a calibration context.
 
 Average results for the entire database are presented in terms of the reduction factor and $\tilde{\varphi}$ metric.
 The reduction factors are the number of points in the original divided by the number of samples in the downsampled data (i.e., higher factor is better).
@@ -387,9 +388,8 @@ The error metric, $\tilde{\varphi}$, is computed using $k_{sample}$ from the pro
 The $\tilde{\varphi}$ values are computed using the ``true'' original data (i.e., not filtered and not normalized), this is why they may be larger than 0.5~\%.
 
 Across 15 datasets, the average reduction in the number of points from the original to downsampled data is 81 times (standard deviation of 28, minimum of 32 and maximum of 124) using the proposed method, this is 3 times better than the old method.
-Note that these values were computed excluding experiments that were re-done because of, e.g., excessive oscillations or premature buckling.
-The average error between the original and downsampled data across the 15 datasets (132 tests) is 0.49~\% with a standard deviation of 0.14~\%.
-The error values exclude 14 tests that had large elastic unloading cycles immediately after the upper yield point.
+The average error between the original and downsampled data across the 15 datasets (133 tests) is 0.49~\% with a standard deviation of 0.14~\%.
+The average error value is computed excluding 13 tests that had large elastic unloading cycles immediately after the upper yield point.
 
 \begin{figure}
     \centering
