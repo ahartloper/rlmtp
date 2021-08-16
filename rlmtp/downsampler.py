@@ -300,19 +300,13 @@ def stress_strain_peaks(d, last_ind=None, f_yn=345.0):
 
 def downsample_error(d, ind, removal_ranges=[], e_scale=1.0, s_scale=1.0):
     """ Returns the accumulated relative energy error between the original and downsampled data. """
-    # Remove any data in removal ranges so compute correct error
-    if len(removal_ranges) > 0:
-        remove_ind = []
-        remove_ind = [remove_ind + list(range(r[0]+1, r[1])) for r in removal_ranges]
-        d2 = np.delete(d, remove_ind, axis=0)
-    else:
-        d2 = d.copy()
     # Scale the data
+    d2 = d.copy()
     d2[:, 0] = d2[:, 0] * e_scale
     d2[:, 1] = d2[:, 1] * s_scale
     # Compute error
-    x = np.array([0.0] + list(np.cumsum(np.abs(np.diff(d[:ind[-1] + 1, 0])))))
-    y = d[:ind[-1] + 1, 1]
+    x = np.array([0.0] + list(np.cumsum(np.abs(np.diff(d2[:ind[-1] + 1, 0])))))
+    y = d2[:ind[-1] + 1, 1]
     xi = x[ind]
     yi = y[ind]
     y2 = np.interp(x, xi, yi)
