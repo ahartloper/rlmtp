@@ -51,36 +51,44 @@ def latex_photo_compiler(input_dir, output_dir):
     # Set the extensions that will be considered as images to include in the LaTeX file
     valid_extensions = ['png', 'PNG', 'jpg']
 
+    # Get all the files in the input folder
+    file_names = os.listdir(input_dir)
+    image_files = [f for f in file_names if f[-3:] in valid_extensions]
+    image_file_paths = [image_relpath + '/' + f for f in image_files]
+
     # Start the LaTeX document
-    doc_type = 'article'
-    paper_type = 'a4paper'
     out_file_name = 'photo_summary.tex'
-    with open(output_dir + out_file_name, 'w') as photo_tex_file:
-        # Create the preamble
-        photo_tex_file.write(r'\documentclass[{{{0}}}]{{{1}}}'.format(paper_type, doc_type))
-        photo_tex_file.write('\n')
-        photo_tex_file.write(r'\usepackage{graphicx}')
-        photo_tex_file.write('\n')
-        photo_tex_file.write(r'\begin{document}')
-        photo_tex_file.write('\n')
-        photo_tex_file.write('\n')
-
-        # Get all the files in the input folder and add the figures to the LaTeX file
-        file_names = os.listdir(input_dir)
-        image_files = [f for f in file_names if f[-3:] in valid_extensions]
-        image_file_paths = [image_relpath + '/' + f for f in image_files]
-        for i, fn in enumerate(image_files):
-            in_path = image_file_paths[i]
-            latex_fig = latex_figure_string(fn, in_path)
-            photo_tex_file.write(latex_fig)
-            photo_tex_file.write('\n')
-            photo_tex_file.write('\n')
-
-        # End the LaTeX document
-        photo_tex_file.write(r'\end{document}')
+    out_path = output_dir + out_file_name
+    make_latex_doc(image_file_paths, out_path)
 
     # Print a completion message
     print('Finished creating the file {0}'.format(output_dir + out_file_name))
+    return
+
+
+def make_latex_doc(image_paths, output_path, paper_type='a4paper', doc_type='article'):
+    """ Writes the LaTeX document to file. """
+
+    # Start the LaTeX document
+    with open(output_path, 'w') as figure_tex_file:
+        # Create the preamble
+        figure_tex_file.write(r'\documentclass[{{{0}}}]{{{1}}}'.format(paper_type, doc_type))
+        figure_tex_file.write('\n')
+        figure_tex_file.write(r'\usepackage{graphicx}')
+        figure_tex_file.write('\n')
+        figure_tex_file.write(r'\begin{document}')
+        figure_tex_file.write('\n')
+        figure_tex_file.write('\n')
+
+        for im_path in image_paths:
+            filename = os.path.basename(im_path)
+            latex_fig = latex_figure_string(filename, im_path)
+            figure_tex_file.write(latex_fig)
+            figure_tex_file.write('\n')
+            figure_tex_file.write('\n')
+
+        # End the LaTeX document
+        figure_tex_file.write(r'\end{document}')
     return
 
 

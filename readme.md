@@ -1,7 +1,7 @@
 # RESSLab Material Test Processing
 
 RESSLab Material Test Processing (`rlmtp`) contains a number of tools to post-process uniaxial coupon test data.
-These tools are designed to aid with filtering stress-strain data, plotting results, synchronizing different
+These tools are designed to aid with downsampling stress-strain data, plotting results, synchronizing different
 measurements, extracting frames from videos at specified times, and more!
 A set of protocols are also provided that specify _how_ the test data should be stored, and functions are provided to
 rapidly process databases that are stored according to these protocols.
@@ -37,6 +37,14 @@ If you would like to use the feature in `rlmtp` of extracting frames from videos
 system.
 This means that `ffmpeg.exe` and `ffprobe.exe` are on your system's path.
 `ffmpeg` is a free software, the pre-compiled binaries are available at: https://www.ffmpeg.org/download.html.
+
+### Installing `polyprox`
+
+The Python package `polyprox` is needed for the downsampler in rlmtp.
+This package should be installed automatically but requires the Visual Studio build tools to compile the C code on Windows.
+However, on Windows machines, you may recieve an error: `C1083: Cannot open include file: 'unistd.h'` because this header file is not included with VC++ (it's a Unix header).
+This error can be fixed by creating a `unistd.h` file on the search path of MSVC (e.g., `C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.23.28105\include\unistd.h`) with the contents from https://stackoverflow.com/a/826027 (copy the text in the box of the stackoverflow comment).
+Then comment out the line `#include <getopt.h>` (replace with `\\ #include <getopt.h>`) because it is not needed.
 
 ### Verifying the installation
 

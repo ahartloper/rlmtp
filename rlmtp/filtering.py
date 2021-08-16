@@ -1,5 +1,5 @@
 """@package filtering
-Functions to filter and reduce the stress-strain data.
+DEPRECATED v0.4.0+: Functions to filter and reduce the stress-strain data.
 """
 
 import numpy as np

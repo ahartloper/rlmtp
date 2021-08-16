@@ -7,13 +7,15 @@ The various protocols that are assumed in rlmtp for storing and processing coupo
 
 This protocol specifies the layout of the specimen directory.
 Following this template will allow you to use the automatic processing functions within rlmtp.
-Optional values are given in brackets (\[\]), and optional files are also given in brackets
-(e.g., \[Temperature_\[test_id\].xlsx\]).
+**Optional values are given in brackets** (\[\]), and optional files are also given in brackets
+(e.g., `[Temperature_[test_id].xlsx]`).
+**Throughout, the brackets should not be included in the optional values**.
+For clarity, the optional file could be called: `Temperature_10122018.xlsx`.
 
 ```
-[specimen_directory]
-+-- [filter_info.csv]
-+-- [specimen_description.csv]
+Specimen [specimen_number]
++-- [downsampler_props.txt]
++-- specimen_description.csv
 +-- Excel
 |   +-- testData_[test_id].xlsx
 |   +-- stiffnessTest_[test_id].xlsx
@@ -35,8 +37,7 @@ Optional values are given in brackets (\[\]), and optional files are also given 
 ```
 
 Notes:
-- The choice of name for specimen_directory is arbitrary
-- The filter_info file is optional, but required if you want to filter the results
+- Throughout this protocol, **the "`specimen_directory`"** is defined as `Specimen [specimen_number]` and will be called `specimen_directory`.
 
 ## Test Data File Protocol
 
@@ -97,51 +98,6 @@ optional depending on the number of sampling rates. A maximum of two rates can b
 rate in line 6 must be equal in the temperature and first columns).
 - The standard unit of measurement for time is seconds, and degrees C for temperature.
 
-
-## Filter Protocol
-
-This protocol is for the file \[specimen_directory\]/filter_info.csv.
-The filter_info file is optional, it provides the specific values to filter and reduce the stress-strain data to be
-amenable for material parameter fitting.
-
-File format:
-- Line 1: window\_length\_1, \[optional\] polyfit\_order\_1
-- Line 2: anchor\_start\_1, \[anchor_i\], anchor\_end\_1
-- Line 2*j: window\_length\_j, \[optional\] polyfit\_order\_j
-- Line 2*j+1: anchor\_start_\j, \[anchor_i\], anchor\_end\_j
-
-The filter information is provided in sets, each set has a particular window length, polyfit order, and anchor points.
-Each set is specified on two sequential lines, an unlimited number of sets may be specified.
-This is to allow for different filtering strategies in different data sequences in the same test, where the data saving
-rate or strain rate may vary within the test.
-
-window\_length\_1 is an integer specifying the maximum jump between data indices, the greater this value is the less
-data points in the filtered data.
-polyfit_order\_1 is the order of line to fit between the final points (default value is 1) for the first set.
-anchor\_start\_1 is the index of the first data point to include in the first set,
-anchor_end\_1 is the index of the last data point to include,
-and [anchor_i] are the optional anchor points corresponding to the 0-indexed data between the start and end anchor
-points.
-Additional data sets filtered using window\_length\_j and polyfit\_order\_j are specified on additional lines.
-
-Note that only the data bounded by anochor\_start\_1 and anchor\_end\_j (or anchor\_end\_1 if only one set of anchor
-points is specified) will be included in the processed output.
-
-### Filter file auto generation
-
-A function exists in RLMTP to auto-generate filter files.
-It can be accessed through rlmtp.generate_filter_file(), see the function for more information.
-
-### Points of interest
-A 'points_of_interest.txt' file can be added to the specimen directory.
-This file is used during the filter file auto-generation.
-The file can contain two items:
-- removal_range,\<start\>:\<finish\>
-- buckle_ind,\<index\>
-The removal range specifies that all points with indexes between the start and finish will be removed.
-This is useful to remove a data feature that you do not want to calibrate a model to.
-The buckle index specifies that this is to be the index of the last data point in the cleaned data, as the specimen has
-buckled past this point.
 
 ## Specimen Description Protocol
 
@@ -269,3 +225,83 @@ An example of the structure of a database is
 Each of the "Specimen [N]" directories conform to the specimen directory protocol outlined at the beginning of this
 document.
 The "S355 HEB500 web" and "S355 HEB500 flange" constitute two separate campaigns.
+
+## Specify parameters for the downsampler, to account for buckling, and unwanted data
+
+Custom parameters can be specified for the downsampler if satisfactory results were not obtained with the default parameters.
+Furthermore, the cleaned stress-strain should not include data after buckling, and occasionally certain sections of data need to be removed.
+A `downsampler_props.txt` file, added to the specimen directory, can accomplish these three tasks.
+
+The `downsampler_props.txt` file is used during the downsampling procedure.
+Any keyword argument in `rlmtp.rlmtp_downsampler` can be specified in the file as a comma separated line.
+For example:
+```
+downsample_tol,[tol]
+```
+would set the tolerance to `[tol]`.
+For clarity, e.g.: `downsample_tol,0.0005`.
+
+To set the last index due to buckling, use the line:
+```
+last_ind,[index]
+```
+where `[index]` is the index.
+All the data after `[index]` will be removed.
+For clarity, e.g.: `last_ind,1782`.
+
+To remove a range of data (e.g., an unwanted elastic cycle after the upper yield point), use the line:
+```
+removal_range,[start]:[finish]
+```
+where `[start]` is the index before the data you want removed, and `[finish]` is the data after you want removed.
+The clean data will contain `[start]` and `[finish]`, but will not contain anything in between.
+For clarity, e.g.: `removal_range,104:157`.
+
+## Filter Protocol - DEPRECATED
+
+The `Filter Protocol` is not needed since version 0.4.0+.
+
+This protocol is for the file \[specimen_directory\]/filter_info.csv.
+The filter_info file is optional, it provides the specific values to filter and reduce the stress-strain data to be
+amenable for material parameter fitting.
+
+File format:
+- Line 1: window\_length\_1, \[optional\] polyfit\_order\_1
+- Line 2: anchor\_start\_1, \[anchor_i\], anchor\_end\_1
+- Line 2*j: window\_length\_j, \[optional\] polyfit\_order\_j
+- Line 2*j+1: anchor\_start_\j, \[anchor_i\], anchor\_end\_j
+
+The filter information is provided in sets, each set has a particular window length, polyfit order, and anchor points.
+Each set is specified on two sequential lines, an unlimited number of sets may be specified.
+This is to allow for different filtering strategies in different data sequences in the same test, where the data saving
+rate or strain rate may vary within the test.
+
+window\_length\_1 is an integer specifying the maximum jump between data indices, the greater this value is the less
+data points in the filtered data.
+polyfit_order\_1 is the order of line to fit between the final points (default value is 1) for the first set.
+anchor\_start\_1 is the index of the first data point to include in the first set,
+anchor_end\_1 is the index of the last data point to include,
+and [anchor_i] are the optional anchor points corresponding to the 0-indexed data between the start and end anchor
+points.
+Additional data sets filtered using window\_length\_j and polyfit\_order\_j are specified on additional lines.
+
+Note that only the data bounded by anochor\_start\_1 and anchor\_end\_j (or anchor\_end\_1 if only one set of anchor
+points is specified) will be included in the processed output.
+
+### Filter file auto generation - DEPRECATED
+
+The filter file auto generation is deprecated since version 0.6.0+.
+
+A function exists in RLMTP to auto-generate filter files.
+It can be accessed through rlmtp.generate_filter_file(), see the function for more information.
+
+### Points of interest
+A 'points_of_interest.txt' file can be added to the specimen directory.
+This file is used during the filter file auto-generation.
+The file can contain two items:
+- removal_range,\[start\]:\[finish\]
+- buckle_ind,\[index\]
+The removal range specifies that all points with indexes between the start and finish will be removed.
+This is useful to remove a data feature that you do not want to calibrate a model to.
+The buckle index specifies that this is to be the index of the last data point in the cleaned data, as the specimen has
+buckled past this point.

@@ -8,10 +8,10 @@ data. Generally the data is required to be stored according to the protocols out
 import os
 import errno
 import pandas as pd
-from rlmtp.readers import import_dion7_data, import_catman_data, read_filter_info
-from rlmtp.sync_temperature import sync_temperature
-from rlmtp.plotting import stress_strain_plotter, temp_time_plotter
-from rlmtp.filtering import clean_data
+from .readers import import_dion7_data, import_catman_data
+from .sync_temperature import sync_temperature
+from .plotting import stress_strain_plotter, temp_time_plotter
+from .downsampler import downsample_data, read_downsample_props
 
 
 def dir_maker(directory):
@@ -28,7 +28,7 @@ def load_data_files(input_dir):
     """ Checks if the correct files exists and loads them if they do.
 
     :param str input_dir: Specimen parent directory.
-    :return dict: Contains the Dion7 data, catman data, and filtering data.
+    :return dict: Contains the Dion7 data, catman data, and downsampler data.
 
     - If any of the data files do not exist, then None is returned in their place.
     """
@@ -59,16 +59,16 @@ def load_data_files(input_dir):
     except (FileNotFoundError, IndexError):
         valid_catman_data = False
         print('\t catman data does NOT exist.')
-    # filtering file
+    # downsampling info
     try:
-        valid_file = [f for f in files_in_root if f[:6] == 'filter']
-        filter_file = os.path.join(input_dir, valid_file[0])
-        filter_data = read_filter_info(filter_file)
-        valid_filter_data = True
-        print('\t Filtering information exists.')
+        valid_file = [f for f in files_in_root if f[:len('downsampler_props')] == 'downsampler_props']
+        downsample_file = os.path.join(input_dir, valid_file[0])
+        downsample_props = read_downsample_props(downsample_file)
+        valid_downsample_data = True
+        print('\t Using custom downsampling parameters.')
     except (FileNotFoundError, IndexError):
-        valid_filter_data = False
-        print('\t Filtering information does NOT exist.')
+        valid_downsample_data = False
+        print('\t Using default downsampling parameters.')
 
     # Add all the datafiles to a dict and return it
     data = {}
@@ -80,10 +80,10 @@ def load_data_files(input_dir):
         data['catman'] = catman_data
     else:
         data['catman'] = None
-    if valid_filter_data:
-        data['filtering'] = filter_data
+    if valid_downsample_data:
+        data['downsampling'] = downsample_props
     else:
-        data['filtering'] = None
+        data['downsampling'] = dict()
     return data
 
 
@@ -111,7 +111,7 @@ def generate_output(data, output_dir, pre_name):
     out_path = processed_file_name(output_dir, pre_name)
     # Rename the time column
     data2 = data.rename(columns={'C_1_Temps[s]': 'Time[s]'})
-    data2.to_csv(out_path, index=False)
+    data2.to_csv(out_path, index=True)
 
     # Write the figures
     stress_strain_plotter(data, output_dir, pre_name)
@@ -120,21 +120,28 @@ def generate_output(data, output_dir, pre_name):
     return
 
 
-def process_specimen_data(input_dir, output_dir, ignore_filter=False):
+def process_specimen_data(input_dir, output_dir, should_downsample=True, default_global_downsample=True):
     """ Generates the final .csv output and plots the relevant data.
 
     :param str input_dir: Specimen directory containing the data.
     :param str output_dir: Directory where the output will be saved.
-    :param bool ignore_filter: If True, then don't use filter files even if they exist. False is default behavior.
-    :return pd.DataFrame: Contains all the processed, filtered data collected by the function.
+    :param bool should_downsample: If False, then do not downsample.
+    :param bool default_global_downsample: If True, then uses the global downsamping method, else uses
+                                         the local downsampling method.
+    :return pd.DataFrame: Contains all the processed, downsampled data collected by the function.
 
-    - For the definition of the specimen directory see rlmtp/protocols/readme.md
-    - The structure of the specimen input directory must follow the specification. The behavior of this function
-    depends on the files that exist.
-    - The Dion7 data must exist for this function to run, temperature and filtering data are optional.
-    - All of the output names are prepended by a string based on the input_dir string. For details on the prepended
-    string, see the get_pre_name function.
-    - If the temperature data exists, it is synced with the Dion7 data.
+    Notes:
+    ======
+        - For the definition of the specimen directory see rlmtp/protocols/readme.md
+        - The structure of the specimen input directory must follow the specification. The behavior of this function
+        depends on the files that exist.
+        - The Dion7 data must exist for this function to run, temperature and downsampling data are optional.
+        - All of the output names are prepended by a string based on the input_dir string. For details on the prepended
+        string, see the get_pre_name function.
+        - If the temperature data exists, it is synced with the Dion7 data.
+        - Option "default_global_downsample" is ignored if "use_local_error" is specified in the downsample_props.txt.
+        - The global downsampling tolerance is set to 0.5% if default_global_downsample=True, else default parameters
+        are used.
     """
     # First check if the data already exists at the output location
     print('Processing data in {0}'.format(input_dir))
@@ -159,11 +166,23 @@ def process_specimen_data(input_dir, output_dir, ignore_filter=False):
             final_data = sync_temperature(dion7_data, catman_data)
         else:
             final_data = dion7_data.data
-        # Do the filtering
-        filter_info = all_data['filtering']
-        if filter_info is not None and not ignore_filter:
-            print('Filtering the data...')
-            final_data = clean_data(final_data, filter_info)
+        # Convert the index to integers
+        final_data.index = final_data.index.astype('int64')
+        # Do the downsampling
+        downsample_params = all_data['downsampling']
+        # Choose local or global method if not specified
+        if 'use_local_error' not in downsample_params:
+            if default_global_downsample:
+                downsample_params['use_local_error'] = False
+                downsample_params['downsample_tol'] = 0.005
+            else:
+                # Use default params
+                pass
+        if not should_downsample:
+            print('Skipping downsampling...')
+        else:
+            print('Downsampling the data...')
+            final_data = downsample_data(final_data, downsample_params)
         # Output the required files
         dir_maker(output_dir)
         print('Generating the output...')

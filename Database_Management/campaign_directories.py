@@ -12,7 +12,7 @@ Additional data that does not follow the RLMTP storage protocol should be insert
 input_root = './RESSLab_Material_DB'
 
 # Data in these directories follow the RLMTP protocol
-# The data in these folders are in raw format and need to be filtered/reduced
+# The data in these folders are in raw format and need to be downsampled
 campaign_dirs_rlmtp = [
     # S355
     'S355J2_HEB500/flange',
@@ -43,7 +43,7 @@ campaign_dirs_rlmtp = [
 ]
 
 # Data in these directories do not following the RLMTP protocol
-# The data in these folders are already filtered/reduced, just need to copy
+# The data in these folders are already processed, just need to copy
 campaign_dirs_nonrlmtp = [
     'S690QL/25mm',
     'S460NL/25mm',
