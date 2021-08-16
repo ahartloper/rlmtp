@@ -7,13 +7,15 @@ The various protocols that are assumed in rlmtp for storing and processing coupo
 
 This protocol specifies the layout of the specimen directory.
 Following this template will allow you to use the automatic processing functions within rlmtp.
-Optional values are given in brackets (\[\]), and optional files are also given in brackets
-(e.g., \[Temperature_\[test_id\].xlsx\]).
+**Optional values are given in brackets** (\[\]), and optional files are also given in brackets
+(e.g., `[Temperature_[test_id].xlsx]`).
+**Throughout, the brackets should not be included in the optional values**.
+For clarity, the optional file could be called: `Temperature_10122018.xlsx`.
 
 ```
-[specimen_directory]
+Specimen [specimen_number]
 +-- [downsampler_props.txt]
-+-- [specimen_description.csv]
++-- specimen_description.csv
 +-- Excel
 |   +-- testData_[test_id].xlsx
 |   +-- stiffnessTest_[test_id].xlsx
@@ -35,8 +37,7 @@ Optional values are given in brackets (\[\]), and optional files are also given 
 ```
 
 Notes:
-- The choice of name for specimen_directory is arbitrary
-- The filter_info file is optional, but required if you want to filter the results
+- Throughout this protocol, **the "`specimen_directory`"** is defined as `Specimen [specimen_number]` and will be called `specimen_directory`.
 
 ## Test Data File Protocol
 
@@ -108,6 +109,7 @@ The format of this file is not line specific, the order of lines below is only r
 The first entry in each line is a specific keyword, and the entries given in brackets are the associated values.
 Only the keywords in the list below are recognized, any other keywords will not be parsed when processing the file.
 Empty lines are allowed, and will be ignored.
+**Recall that the brackets should not be included** when actually writing the file and indicate values that need to be entered.
 
 
 File format:
@@ -205,6 +207,37 @@ Each of the "Specimen [N]" directories conform to the specimen directory protoco
 document.
 The "S355 HEB500 web" and "S355 HEB500 flange" constitute two separate campaigns.
 
+## Specify parameters for the downsampler, to account for buckling, and unwanted data
+
+Custom parameters can be specified for the downsampler if satisfactory results were not obtained with the default parameters.
+Furthermore, the cleaned stress-strain should not include data after buckling, and occasionally certain sections of data need to be removed.
+A `downsampler_props.txt` file, added to the specimen directory, can accomplish these three tasks.
+
+The `downsampler_props.txt` file is used during the downsampling procedure.
+Any keyword argument in `rlmtp.rlmtp_downsampler` can be specified in the file as a comma separated line.
+For example:
+```
+downsample_tol,[tol]
+```
+would set the tolerance to `[tol]`.
+For clarity, e.g.: `downsample_tol,0.0005`.
+
+To set the last index due to buckling, use the line:
+```
+last_ind,[index]
+```
+where `[index]` is the index.
+All the data after `[index]` will be removed.
+For clarity, e.g.: `last_ind,1782`.
+
+To remove a range of data (e.g., an unwanted elastic cycle after the upper yield point), use the line:
+```
+removal_range,[start]:[finish]
+```
+where `[start]` is the index before the data you want removed, and `[finish]` is the data after you want removed.
+The clean data will contain `[start]` and `[finish]`, but will not contain anything in between.
+For clarity, e.g.: `removal_range,104:157`.
+
 ## Filter Protocol - DEPRECATED
 
 The `Filter Protocol` is not needed since version 0.4.0+.
@@ -238,6 +271,8 @@ points is specified) will be included in the processed output.
 
 ### Filter file auto generation - DEPRECATED
 
+The filter file auto generation is deprecated since version 0.6.0+.
+
 A function exists in RLMTP to auto-generate filter files.
 It can be accessed through rlmtp.generate_filter_file(), see the function for more information.
 
@@ -245,8 +280,8 @@ It can be accessed through rlmtp.generate_filter_file(), see the function for mo
 A 'points_of_interest.txt' file can be added to the specimen directory.
 This file is used during the filter file auto-generation.
 The file can contain two items:
-- removal_range,\<start\>:\<finish\>
-- buckle_ind,\<index\>
+- removal_range,\[start\]:\[finish\]
+- buckle_ind,\[index\]
 The removal range specifies that all points with indexes between the start and finish will be removed.
 This is useful to remove a data feature that you do not want to calibrate a model to.
 The buckle index specifies that this is to be the index of the last data point in the cleaned data, as the specimen has
