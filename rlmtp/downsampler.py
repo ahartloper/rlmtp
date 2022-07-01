@@ -81,6 +81,7 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     # Run downsampler
     # Remove noise in the stress with a moving average filter
     d = np.array(data[['e_true', 'Sigma_true']])
+    d0 = d.copy()
     if apply_filter:
         d[:, 1] = filter_stress(d, ind_2prct, wl_base=wl_base_value, wl_factor=wl_2prct_factor,
                                 poly_order=polyorder)
@@ -95,7 +96,7 @@ def rlmtp_downsampler(data, use_local_error=True, downsample_tol=0.001, last_ind
     ind_final = sorted(list(set(ind_final)))
 
     # Keep extra points in initial elastic region
-    ind_final += add_to_elastic(d, [ind_ss[0], ind_ss[1]], n_elastic_region)
+    ind_final += add_to_elastic(d0, ind_final, f_yn, n_elastic_region)
     # Sort again and return
     ind_final = sorted(list(set(ind_final)))
     return ind_final
@@ -169,13 +170,23 @@ def filter_stress(d, ind_2prct, wl_base=5, wl_factor=11, poly_order=1):
     return s_final
 
 
-def add_to_elastic(d, elastic_ind, n_elastic_region):
-    """ Adds indices to the elastic region. """
-    e_elastic = d[elastic_ind[0]:elastic_ind[1], 0]
-    e_add = np.linspace(e_elastic[0], e_elastic[-1], num=n_elastic_region, endpoint=False)
+def add_to_elastic(d, selected_pts, fy, n_elastic_region):
+    """ Adds indices to the elastic region.
+    :param np.array d: (n, 2) Stress-strain data.
+    :param float fym: Yield stress.
+    :param int n_elastic_region: Number of points to add in the elastic region.
+    """
+    # Find first point with stress > 0.8 * fy (in case actual yield is lower than nominal)
+    # The actual value is not expected to be less than 20% lower
+    for i in selected_pts:
+        if d[i, 1] > 0.8 * fy:
+            i_elastic = i
+            break
+    elastic_pts = d[selected_pts[0]:i_elastic, 1]
+    target_pts = np.linspace(d[selected_pts[0], 1], d[i_elastic, 1], num=n_elastic_region, endpoint=False)
     additional_ind = []
-    for e in e_add:
-        additional_ind.append(elastic_ind[0] + int(np.argmin(np.abs(e_elastic - e))))
+    for tp in target_pts:
+        additional_ind.append(selected_pts[0] + int(np.argmin(np.abs(elastic_pts - tp))))
     return additional_ind
 
 
