@@ -3,6 +3,7 @@ Functions to obtain the measured elastic modulus and yield stress.q
 """
 
 from __future__ import division
+import warnings
 import numpy as np
 import pandas as pd
 
@@ -69,25 +70,32 @@ def interx1(curve1, curve2):
     return p
 
 
-def compute_modulus(e, s, a=0.66, f_yn=345.):
-    """ Returns the elastic modulus from the stress-strain data based on the interval [0, a * f_yn].
+def compute_modulus(e, s, a=0.66, b=0.01, f_yn=345.):
+    """ Returns the elastic modulus from the stress-strain data based on the interval [b * f_yn, a * f_yn].
 
     :param np.ndarray e: (n, ) Strain data
     :param np.ndarray s: (n, ) Stress data
     :param float a: Ratio of the nominal yield stress for the upper bound
+    :param float b: Ratio of the nominal yield stress for the lower bound
     :param float f_yn: Nominal yield stress
     :return float: Elastic modulus
     """
-
-    # Consider the data up to 2/3 of f_yn
     s_abs = np.abs(s)
     i_limit = len(s_abs) - 1
+    i_lower = 0
     for i, si in enumerate(s_abs):
+        if si < b * f_yn:
+            # Continue to update i_lower until the limit is reached
+            i_lower = i
         if si > a * f_yn:
             i_limit = i - 1
             break
     # Linear fit based on the data up-to i_limit, modulus is first value
-    pf = np.polyfit(e[:i_limit], s[:i_limit], 1)
+    if i_lower == i_limit:
+        warnings.warn('Insufficient data for computing elastic modulus, using E = 999999.')
+        pf = [999999.0]
+    else:
+        pf = np.polyfit(e[i_lower:i_limit], s[i_lower:i_limit], 1)
     return pf[0]
 
 
