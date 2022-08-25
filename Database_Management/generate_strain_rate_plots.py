@@ -9,17 +9,13 @@ import pandas as pd
 import rlmtp
 
 # Use the data that has already been filtered/reduced
-input_root = './Clean_Data'
+input_root = 'Clean_Data'
 data_dirs = [
-    'S355J2_HEB500/flange',
-    'S355J2_HEB500/web',
-    'S355J2_IPE300/flange',
-    'S355J2_IPE300/web',
-    'S355J2_HEM300/flange'
+    'S235275_Plates/S235275_Plate15'
 ]
 
 # Set the output directory
-output_root = './Clean_Data/strain_rates'
+output_root = 'Clean_Data/strain_rates'
 
 # Data processing -------------------------------------------------------------
 for d in data_dirs:

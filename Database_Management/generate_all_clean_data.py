@@ -13,10 +13,10 @@ import rlmtp
 from campaign_directories import input_root, campaign_dirs_rlmtp, campaign_dirs_nonrlmtp
 
 
-def gen_clean_data(output_root='./Clean_Data', ignore_filter=False):
+def gen_clean_data(output_root='./Clean_Data', should_downsample=True):
     """ Generates, sorts, and extracts all the cleaned stress-strain data from the database.
     :param str output_root: Directory to place the processed data.
-    :param bool ignore_filter: If False, then DO include the filtering/reduction, else ignore.
+    :param bool should_downsample: If True, then downsample data, else do not.
     """
 
     # Data processing
@@ -36,9 +36,12 @@ def gen_clean_data(output_root='./Clean_Data', ignore_filter=False):
     # Process the RLMTP data
     for campaign in campaign_dirs_rlmtp:
         print('Processing {0}'.format(campaign))
-        cdir = os.path.join(input_root, campaign)
+        cdir = os.path.normpath(os.path.join(input_root, campaign))
         # next(os.walk(cdir))[1] gets only the directories in cdir
-        lps_in_campaign = next(os.walk(cdir))[1]
+        try:
+            lps_in_campaign = next(os.walk(cdir))[1]
+        except StopIteration:
+            raise ValueError('Incorrect directory: "{0}", check spelling and existance.'.format(cdir))
         for lp in lps_in_campaign:
             specimens = next(os.walk(os.path.join(cdir, lp)))[1]
             for s in specimens:
@@ -46,7 +49,7 @@ def gen_clean_data(output_root='./Clean_Data', ignore_filter=False):
                 p = os.path.join(cdir, lp, s)
                 db_tag = get_db_tag(p)
                 if db_tag is not None:
-                    rlmtp.process_specimen_data(p, output_dir, ignore_filter=ignore_filter)
+                    rlmtp.process_specimen_data(p, output_dir, should_downsample=should_downsample)
                     pre_name = rlmtp.processing.get_pre_name(p)
                     output_file = rlmtp.processing.processed_file_name(output_dir, pre_name)
                     # Add the DB tag to the map
@@ -64,8 +67,11 @@ def gen_clean_data(output_root='./Clean_Data', ignore_filter=False):
 
     for campaign in campaign_dirs_nonrlmtp:
         print('Processing {0}'.format(campaign))
-        cdir = os.path.join(input_root, campaign)
-        lps_in_campaign = next(os.walk(cdir))[1]
+        cdir = os.path.normpath(os.path.join(input_root, campaign))
+        try:
+            lps_in_campaign = next(os.walk(cdir))[1]
+        except StopIteration:
+            raise ValueError('Incorrect directory: "{0}", check spelling and existance.'.format(cdir))
         for lp in lps_in_campaign:
             specimens = next(os.walk(os.path.join(cdir, lp)))[1]
             for s in specimens:
